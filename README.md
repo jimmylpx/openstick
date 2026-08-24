@@ -21,7 +21,7 @@ Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **
   - **4G LTE Nonaktif Secara Default**: Menjaga perangkat tetap dingin saat awal booting.
   - Saat 4G LTE diaktifkan, frekuensi CPU dikelola secara optimal agar suhu tetap stabil di **~53°C – 57°C**.
 - **🔌 Pengatur Mode USB (Host OTG / Gadget)**:
-  - **Gadget Mode (Default)**: Untuk dicolokkan ke PC/Laptop (Network RNDIS USB Ethernet).
+  - **Gadget Mode (Default)**: Untuk dicolokkan ke Windows PC (RNDIS USB Ethernet).
   - **Host Mode (OTG)**: Untuk membaca Flashdisk, USB Hub, USB Ethernet, atau Keyboard.
 - **🔒 DNSCrypt-Proxy (Cloudflare DoH)**:
   - Tersedia opsi DNS over HTTPS (DoH) terenkripsi via Cloudflare pada `127.0.0.1:5353`.
@@ -132,25 +132,44 @@ Setelah proses flashing pada `installer.sh` selesai, perangkat biasanya akan ber
 
 ## 🖥️ Cara Mengakses Perangkat Setelah Instalasi
 
-Setelah modem dicolokkan kembali dan selesai booting (~40 detik), Anda dapat terhubung melalui **RNDIS (USB Ethernet)** di PC Windows/Linux atau melalui **Wi-Fi Hotspot**:
+Setelah modem dicolokkan kembali dan selesai booting (~40 detik), akses perangkat melalui salah satu metode berikut:
 
-### 1. Akses via SSH
-- **IP Gateway Default**: `192.168.100.1`
-- **Kredensial Login**:
-  - Akun Pengguna: `user` (Password: `1`)
-  - Akun Root: `root` (Password: `1`)
-- **Perintah Terminal**:
-  ```bash
-  # Login sebagai user biasa
-  ssh user@192.168.100.1
-
-  # Atau login langsung sebagai root
-  ssh root@192.168.100.1
-  ```
+### Opsi 1: Dari Windows PC (Kabel USB — RNDIS Ethernet)
+1. Colokkan modem ke port USB PC Windows Anda (driver RNDIS Ethernet akan aktif secara otomatis).
+2. Buka PowerShell / Command Prompt / PuTTY, lalu hubungkan via SSH:
+   ```bash
+   ssh user@192.168.100.1
+   ```
+   **Password:** `1`
 
 ---
 
-### 2. Mengelola Jaringan & Fitur (`sbrmenu`)
+### Opsi 2: Dari Linux PC / Smartphone / Laptop (Koneksi Wi-Fi)
+*(Catatan: Linux PC tidak mendukung RNDIS dari dongle ini secara langsung, sehingga akses dari Linux dilakukan melalui jaringan Wi-Fi)*
+
+1. Sambungkan PC Linux / HP Anda ke **Wi-Fi Hotspot bawaan modem** atau pastikan modem dan PC berada di **jaringan Wi-Fi lokal yang sama**.
+2. Buka terminal di PC Linux Anda:
+   ```bash
+   # Jika terhubung ke Hotspot modem:
+   ssh user@192.168.100.1
+
+   # Atau jika modem terhubung ke Wi-Fi rumah, gunakan IP lokal modem:
+   ssh user@<IP_LOKAL_MODEM>
+   ```
+   **Password:** `1`
+
+---
+
+### 🔑 Hak Akses Administrator (Root)
+Untuk alasan keamanan, login langsung sebagai `root` via SSH dinonaktifkan secara default. Setelah login sebagai akun `user`, Anda dapat beralih ke root kapan saja dengan perintah:
+```bash
+sudo su
+# Password: 1
+```
+
+---
+
+### 🎛️ Mengelola Jaringan & Fitur (`sbrmenu`)
 Setelah login ke terminal SSH modem, jalankan menu TUI interaktif:
 ```bash
 sbrmenu
