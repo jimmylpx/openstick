@@ -134,31 +134,49 @@ Setelah proses flashing pada `installer.sh` selesai, perangkat biasanya akan ber
 
 ## 🖥️ Cara Mengakses Perangkat Setelah Instalasi
 
-Setelah modem dicolokkan kembali dan selesai booting (~40 detik), akses perangkat melalui salah satu metode berikut:
+Setelah modem dicolokkan kembali dan selesai booting (~40 detik), perangkat OpenStick dapat diakses melalui berbagai metode berikut:
 
-### Opsi 1: Dari Windows PC (Kabel USB — RNDIS Ethernet)
-1. Colokkan modem ke port USB PC Windows Anda (driver RNDIS Ethernet akan aktif secara otomatis).
-2. Buka PowerShell / Command Prompt / PuTTY, lalu hubungkan via SSH:
-   ```bash
-   ssh user@192.168.100.1
-   ```
-   **Password:** `1`
+### 🪟 1. Dari Windows PC
+Anda dapat mengakses perangkat melalui 3 metode:
+- **Metode A (Kabel USB — RNDIS Ethernet / SSH)**:
+  Colokkan modem ke port USB PC Windows (driver *Remote NDIS Compatible Device* akan aktif secara otomatis). Buka PowerShell / CMD / PuTTY, lalu hubungkan via SSH:
+  ```bash
+  ssh user@192.168.100.1
+  # Password: 1
+  ```
+- **Metode B (Kabel USB — ADB Shell)**:
+  Buka CMD atau PowerShell di Windows, lalu jalankan:
+  ```bash
+  adb shell
+  ```
+  *(Sistem akan otomatis login sebagai `user`, menampilkan `fastfetch` dan banner petunjuk `sbrmenu`).*
+- **Metode C (Koneksi Wi-Fi / Hotspot)**:
+  Sambungkan Wi-Fi Windows ke Hotspot bawaan (**SSID:** `4G-UFI-XX`, **Password:** `1234567890`), lalu hubungkan via SSH:
+  ```bash
+  ssh user@192.168.100.1
+  # Password: 1
+  ```
 
 ---
 
-### Opsi 2: Dari Linux PC / Smartphone / Laptop (Koneksi Wi-Fi)
-*(Catatan: Linux PC tidak mendukung RNDIS dari dongle ini secara langsung, sehingga akses dari Linux dilakukan melalui jaringan Wi-Fi)*
+### 🐧 2. Dari Linux PC / HP / Laptop
+Anda dapat mengakses perangkat melalui 2 metode:
+- **Metode A (Kabel USB — ADB Shell Langsung)**:
+  Colokkan modem ke port USB PC Linux, buka terminal, lalu jalankan:
+  ```bash
+  adb shell
+  ```
+  *(Langsung login interaktif sebagai `user` lengkap dengan tampilan `fastfetch` dan banner `sbrmenu`).*
+- **Metode B (Koneksi Wi-Fi / Hotspot / LAN)**:
+  Sambungkan PC Linux atau Smartphone Anda ke Hotspot bawaan (**SSID:** `4G-UFI-XX`, **Password:** `1234567890`) atau pastikan berada di jaringan Wi-Fi lokal yang sama:
+  ```bash
+  # Jika terhubung ke Hotspot modem:
+  ssh user@192.168.100.1
 
-1. Sambungkan PC Linux / HP Anda ke **Wi-Fi Hotspot bawaan modem** atau pastikan modem dan PC berada di **jaringan Wi-Fi lokal yang sama**.
-2. Buka terminal di PC Linux Anda:
-   ```bash
-   # Jika terhubung ke Hotspot modem:
-   ssh user@192.168.100.1
-
-   # Atau jika modem terhubung ke Wi-Fi rumah, gunakan IP lokal modem:
-   ssh user@<IP_LOKAL_MODEM>
-   ```
-   **Password:** `1`
+  # Atau jika modem terhubung ke Wi-Fi rumah:
+  ssh user@<IP_LOKAL_MODEM>
+  # Password: 1
+  ```
 
 ---
 
