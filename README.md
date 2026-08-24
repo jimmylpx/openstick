@@ -13,8 +13,8 @@ Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **
 
 | Edisi OS | Ukuran Image | RAM Aktif | Penggunaan ROM | Fitur Utama |
 | :--- | :--- | :--- | :--- | :--- |
-| **Debian 12 (Bookworm)** | **~113 MB** | ~100 MB / 380 MB | ~351 MB / 3.4 GB | Stabil, Teruji, Ultra Ringan *(Rekomendasi)* |
-| **Debian 13 (Trixie)** | **~135 MB** | ~110 MB / 380 MB | ~386 MB / 3.4 GB | Terbaru, Glibc 2.41, Python 3.13, Native ADBD SDK 34 |
+| **Debian 12 (Bookworm)** | **~111 MB** | ~100 MB / 380 MB | ~351 MB / 3.4 GB | Stabil, Teruji, Ultra Ringan *(Rekomendasi)* |
+| **Debian 13 (Trixie)** | **~121 MB** | ~110 MB / 380 MB | ~386 MB / 3.4 GB | Terbaru, Glibc 2.41, Python 3.13, Native ADBD SDK 34 |
 
 ---
 
@@ -35,6 +35,7 @@ Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **
   - **Host Mode (OTG)**: Untuk membaca Flashdisk, USB Hub, USB Ethernet, atau Keyboard.
   - **Auto-Detect**: Menyesuaikan role saat dicolokkan ke PC Host.
 - **📱 ADB Debugging Bawaan (Network & USB)**:
+  - Default shell ADB masuk sebagai user **`user`** demi keamanan. Jika membutuhkan hak akses root, jalankan `sudo su` atau `su -` (Password: `1`).
   - Akses shell ADB via jaringan: `adb connect 192.168.100.1:5555` -> `adb shell`.
   - Akses shell ADB native saat dicolokkan ke port USB.
 - **🎛️ `sbrmenu` — TUI Network & Hardware Manager**:
@@ -95,23 +96,33 @@ Pilih edisi OS yang diinginkan (Debian 12 Bookworm atau Debian 13 Trixie), dan s
 
 Setelah instalasi selesai dan modem selesai booting:
 
-### 1. Akses via SSH
+### 1. Akses via SSH (USB Ethernet / Wi-Fi)
 - **IP Default**: `192.168.100.1`
-- **Username**: `user` (Password: `1`) atau `root` (Password: `1`)
+- **Autentikasi**:
+  - User Biasa: `user` (Password: `1`)
+  - User Root: `root` (Password: `1`)
 - **Perintah**:
   ```bash
+  # Login sebagai user biasa
   ssh user@192.168.100.1
+
+  # Atau login langsung sebagai root
+  ssh root@192.168.100.1
   ```
 
-### 2. Akses via ADB Shell
+### 2. Akses via ADB Shell (USB / Network)
 - **Perintah**:
   ```bash
+  # Sambungkan via IP (Port 5555)
   adb connect 192.168.100.1:5555
+
+  # Buka Shell (Otomatis masuk sebagai user 'user')
   adb shell
   ```
+- *Catatan*: Di dalam ADB shell, Anda dapat beralih ke root kapan saja dengan mengetik `sudo su` atau `su -` (Password: `1`).
 
 ### 3. Mengelola Jaringan & Fitur
-Setelah login ke terminal modem, jalankan:
+Setelah login ke terminal modem, jalankan menu interaktif:
 ```bash
 sbrmenu
 ```
