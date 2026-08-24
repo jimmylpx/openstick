@@ -11,21 +11,20 @@ Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **
 
 ## 🌟 Fitur Utama & Kustomisasi
 
-- **🚀 One-Click Master Installer (`installer.sh`)**:
-  - Alur otomatis: mendeteksi EDL 9008, backup partisi modem/IMEI asli, aktivasi root ADB, reboot bootloader, flash Base Generic, download & flash Debian transisi, serta flash Debian 12 Bookworm kustom.
-  - Memulihkan seluruh partisi modem asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) sehingga kartu SIM (Telkomsel, Indosat, XL, Tri, Smartfren) langsung aktif *out-of-the-box*.
-- **🛡️ Pre-flight Dependency Check**: Memeriksa ketersediaan tool `adb`, `fastboot`, `edl`, `unzip`, dan `wget` sebelum proses flashing dimulai.
+- **🚀 Direct One-Click Installer (`installer.sh`)**:
+  - Alur cepat & bersih: mendeteksi EDL 9008, backup partisi modem/IMEI asli, aktivasi root ADB, reboot bootloader, flash Base Generic, dan langsung mem-flash Debian 12 Bookworm kustom tanpa tahapan perantara yang berlebih.
+  - Otomatis memulihkan seluruh partisi modem asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) sehingga kartu SIM (Telkomsel, Indosat, XL, Tri, Smartfren) langsung aktif *out-of-the-box*.
+- **🌐 Dynamic DHCP DNS & SUID Ping**:
+  - DNS resolver otomatis mengikuti nameserver dinamis yang diberikan oleh DHCP router atau modem seluler tanpa konfigurasi manual.
+  - Perintah `ping` dapat dijalankan langsung oleh akun pengguna biasa (`user`) tanpa kendala permission socket.
 - **❄️ Manajemen Termal & Stabilitas**:
   - **4G LTE Nonaktif Secara Default**: Menjaga perangkat tetap dingin saat awal booting.
   - Saat 4G LTE diaktifkan, frekuensi CPU dikelola secara optimal agar suhu tetap stabil di **~53°C – 57°C**.
-- **🔌 Pengatur Mode USB (Host OTG / Gadget / Auto-Detect)**:
-  - **Gadget Mode**: Untuk dicolokkan ke PC/Laptop (Network RNDIS + ADB Serial).
+- **🔌 Pengatur Mode USB (Host OTG / Gadget)**:
+  - **Gadget Mode (Default)**: Untuk dicolokkan ke PC/Laptop (Network RNDIS USB Ethernet).
   - **Host Mode (OTG)**: Untuk membaca Flashdisk, USB Hub, USB Ethernet, atau Keyboard.
 - **🔒 DNSCrypt-Proxy (Cloudflare DoH)**:
-  - Mengamankan koneksi DNS terenkripsi DNS over HTTPS (DoH) pada `127.0.0.1:5353` langsung terhubung ke Cloudflare.
-- **📱 ADB Debugging Bawaan (Network & USB)**:
-  - Default shell ADB masuk sebagai akun **`user`** demi keamanan. Jika membutuhkan hak akses root, jalankan `sudo su` atau `su -` (Password: `1`).
-  - Akses shell ADB via jaringan: `adb connect 192.168.100.1:5555` -> `adb shell`.
+  - Tersedia opsi DNS over HTTPS (DoH) terenkripsi via Cloudflare pada `127.0.0.1:5353`.
 - **🎛️ `sbrmenu` — TUI Network & Hardware Manager**:
   Menu interaktif berbasis TUI (`whiptail`) yang dapat dijalankan kapan saja dengan mengetik `sbrmenu`:
   1. **Buat Hotspot**: Konfigurasi SSID & Password WPA2 Personal, di-bridge ke `br0`.
@@ -115,12 +114,11 @@ chmod +x installer.sh
 
 Script akan secara otomatis mengeksekusi tahapan berikut:
 1. **Mendeteksi Mode EDL 9008**: Mem-backup partisi asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) ke folder `extracted/`, lalu menjalankan `edl reset`.
-2. **Aktivasi Root ADB**: Menunggu ADB aktif, mengeksekusi `setprop service.adb.root 1; busybox killall adbd`, lalu me-reboot perangkat ke Fastboot (`adb reboot bootloader`).
+2. **Aktivasi Root ADB**: Menunggu Android aktif, mengeksekusi elevasi root, lalu me-reboot perangkat ke Fastboot (`adb reboot bootloader`).
 3. **Flashing Base Generic**: Mem-flash partisi dasar dan partition table dari folder `base/`.
-4. **Download & Flash Transition Debian**: Mengunduh `debian-generic.zip` dan mem-flash `boot.img` & `rootfs.img`.
-5. **Download & Flash Debian 12 Bookworm**: Mengunduh `bookworm.zip` dan mem-flash firmware Debian 12 kustom (dengan `sbrmenu` & DNSCrypt-Proxy Cloudflare DoH terpasang).
-6. **Restore Baseband Modem**: Mengembalikan seluruh partisi asli dari folder `extracted/`.
-7. **Reboot ke Linux**: Me-reboot perangkat ke sistem operasi baru.
+4. **Download & Flash Langsung Debian 12 Bookworm**: Mengunduh `bookworm.zip` dan mem-flash firmware Debian 12 Bookworm kustom lengkap.
+5. **Restore Baseband Modem**: Mengembalikan seluruh partisi asli dari folder `extracted/`.
+6. **Reboot ke Linux**: Me-reboot perangkat ke sistem operasi baru.
 
 ---
 
@@ -134,14 +132,14 @@ Setelah proses flashing pada `installer.sh` selesai, perangkat biasanya akan ber
 
 ## 🖥️ Cara Mengakses Perangkat Setelah Instalasi
 
-Setelah modem dicolokkan kembali dan selesai booting (~40 detik):
+Setelah modem dicolokkan kembali dan selesai booting (~40 detik), Anda dapat terhubung melalui **RNDIS (USB Ethernet)** di PC Windows/Linux atau melalui **Wi-Fi Hotspot**:
 
-### 1. Akses via SSH (USB Ethernet / Wi-Fi)
-- **IP Default**: `192.168.100.1`
-- **Autentikasi**:
-  - User Biasa: `user` (Password: `1`)
-  - User Root: `root` (Password: `1`)
-- **Perintah**:
+### 1. Akses via SSH
+- **IP Gateway Default**: `192.168.100.1`
+- **Kredensial Login**:
+  - Akun Pengguna: `user` (Password: `1`)
+  - Akun Root: `root` (Password: `1`)
+- **Perintah Terminal**:
   ```bash
   # Login sebagai user biasa
   ssh user@192.168.100.1
@@ -150,19 +148,11 @@ Setelah modem dicolokkan kembali dan selesai booting (~40 detik):
   ssh root@192.168.100.1
   ```
 
-### 2. Akses via ADB Shell (USB / Network)
-- **Perintah**:
-  ```bash
-  # Sambungkan via IP (Port 5555)
-  adb connect 192.168.100.1:5555
+---
 
-  # Buka Shell (Otomatis masuk sebagai user 'user')
-  adb shell
-  ```
-- *Catatan*: Di dalam ADB shell, Anda dapat beralih ke root kapan saja dengan mengetik `sudo su` atau `su -` (Password: `1`).
-
-### 3. Mengelola Jaringan & Fitur (`sbrmenu`)
-Setelah login ke terminal modem, jalankan menu interaktif:
+### 2. Mengelola Jaringan & Fitur (`sbrmenu`)
+Setelah login ke terminal SSH modem, jalankan menu TUI interaktif:
 ```bash
 sbrmenu
 ```
+Ketik nomor menu untuk mengonfigurasi Hotspot, WiFi Client, 4G LTE, SMS Modem, DNSCrypt, Pi-hole, atau USB Mode sesuai kebutuhan.
