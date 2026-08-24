@@ -1,0 +1,12 @@
+*.bin
+*.raw
+*.img
+*.zip
+*.deb
+*.mbn
+*.exe
+*.dll
+stock_extracted/
+adbd_pkg/
+ff_pkg/
+__pycache__/
