@@ -113,7 +113,7 @@ chmod +x installer.sh
 ```
 
 Script akan secara otomatis mengeksekusi tahapan berikut:
-1. **Mendeteksi Mode EDL 9008**: Mem-backup partisi asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) ke folder `extracted/`, lalu menjalankan `edl reset`.
+1. **Mendeteksi Mode EDL 9008 & Full Backup**: Melakukan backup penuh seluruh flash eMMC (`edl rf backup.bin`), mengekstrak partisi asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) ke folder `extracted/`, lalu menjalankan `edl reset`.
 2. **Aktivasi Root ADB**: Menunggu Android aktif, mengeksekusi elevasi root, lalu me-reboot perangkat ke Fastboot (`adb reboot bootloader`).
 3. **Flashing Base Generic**: Mem-flash partisi dasar dan partition table dari folder `base/`.
 4. **Download & Flash Langsung Debian 12 Bookworm**: Mengunduh `bookworm.zip` dan mem-flash firmware Debian 12 Bookworm kustom lengkap.
