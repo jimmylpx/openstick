@@ -13,8 +13,8 @@ Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **
 
 | Edisi OS | Ukuran Image | RAM Aktif | Penggunaan ROM | Fitur Utama |
 | :--- | :--- | :--- | :--- | :--- |
-| **Debian 12 (Bookworm)** | **~111 MB** | ~100 MB / 380 MB | ~351 MB / 3.4 GB | Stabil, Teruji, Ultra Ringan *(Rekomendasi)* |
-| **Debian 13 (Trixie)** | **~121 MB** | ~110 MB / 380 MB | ~386 MB / 3.4 GB | Versi Terbaru, Glibc 2.41, Python 3.13, Native ADBD SDK 34 |
+| **Debian 12 (Bookworm)** | **~114 MB** | ~100 MB / 380 MB | ~351 MB / 3.4 GB | Stabil, Teruji, Ultra Ringan *(Rekomendasi)* |
+| **Debian 13 (Trixie)** | **~125 MB** | ~110 MB / 380 MB | ~386 MB / 3.4 GB | Versi Terbaru, Glibc 2.41, Python 3.13, Native ADBD SDK 34 |
 
 ---
 
@@ -38,6 +38,8 @@ Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **
   - Default shell ADB masuk sebagai akun **`user`** demi keamanan. Jika membutuhkan hak akses root, jalankan `sudo su` atau `su -` (Password: `1`).
   - Akses shell ADB via jaringan: `adb connect 192.168.100.1:5555` -> `adb shell`.
   - Akses shell ADB native saat dicolokkan ke port USB.
+- **📊 Fastfetch Bawaan**:
+  - Menampilkan ringkasan informasi sistem, status CPU, RAM, kernel, dan IP lokal secara otomatis saat login (baik via SSH maupun ADB).
 - **🎛️ `sbrmenu` — TUI Network & Hardware Manager**:
   Menu interaktif berbasis TUI (`whiptail`) yang dapat dijalankan kapan saja dengan mengetik `sbrmenu`:
   1. **Buat Hotspot**: Konfigurasi SSID & Password WPA2 Personal, di-bridge ke `br0`.
@@ -72,20 +74,41 @@ sudo pacman -S android-tools python unzip wget
 ## 📥 Panduan Instalasi (Step-by-Step)
 
 ### 1. Masuk ke Mode EDL 9008
-Sebelum menjalankan script instalasi, perangkat harus dimasukkan ke mode **Qualcomm EDL (Emergency Download Mode 9008)**:
+Sebelum menjalankan script instalasi, perangkat harus dimasukkan ke mode **Qualcomm EDL (Emergency Download Mode 9008)**. Pilih metode sesuai dengan tipe board modem Anda:
 
+#### Opsi A: Board HMUF02-V05 / UFI103S-V05 (Tombol EDL)
 ![Tombol EDL Mode](edl_button.jpg)
-
-**Langkah-langkah:**
 1. Cabut dongle USB modem dari komputer.
 2. **Tekan dan tahan tombol kecil pada board** (lihat lingkaran merah pada gambar di atas).
 3. Sambil tetap menahan tombol tersebut, **colokkan modem ke port USB komputer**.
 4. **Tahan tombol selama ~5 detik** setelah dicolokkan, lalu lepaskan.
-5. Periksa apakah perangkat sudah terdeteksi di mode EDL dengan perintah:
-   ```bash
-   lsusb
-   ```
-   Pastikan muncul ID: `05c6:9008 Qualcomm, Inc. Gobi Wireless Modem (QDL mode)`.
+
+---
+
+#### Opsi B: Board UZ801
+Untuk board UZ801, terdapat **2 cara** untuk masuk ke mode EDL:
+
+![UZ801 Short Pin](uz801_edl.png)
+
+1. **Cara 1 (Software via Web Debug & ADB)**:
+   - Hubungkan PC ke Wi-Fi modem atau colok via USB.
+   - Buka browser dan akses alamat: `http://192.168.100.1/usbdebug.html` lalu tunggu hingga modem me-restart dirinya sendiri.
+   - Buka terminal di PC Anda, lalu jalankan perintah:
+     ```bash
+     adb wait-for-device
+     adb shell "setprop service.adb.root 1; busybox killall adbd"
+     adb wait-for-device
+     adb reboot edl
+     ```
+2. **Cara 2 (Hardware via Short Pin)**:
+   - Cabut modem dari port USB.
+   - Hubungkan (*short*) kedua pin test point yang berada di dalam **kotak merah** pada gambar di atas menggunakan pinset / kabel jumper.
+   - Sambil menghubungkan pin tersebut, **colokkan modem ke port USB**.
+   - Tunggu **~5 detik**, lalu lepaskan pinset/jumper.
+
+> **Verifikasi Mode EDL:**  
+> Jalankan perintah `lsusb` di terminal Linux. Pastikan muncul baris:  
+> `05c6:9008 Qualcomm, Inc. Gobi Wireless Modem (QDL mode)`.
 
 ---
 
@@ -105,9 +128,17 @@ Pilih edisi OS yang diinginkan (Debian 12 Bookworm atau Debian 13 Trixie), dan s
 
 ---
 
+### ⚠️ 4. Penting Setelah Flashing Selesai (Re-Plug Perangkat)
+Setelah proses flashing pada `installer.sh` selesai, perangkat biasanya akan berada dalam kondisi **unresponsive / diam**.
+
+> **Wajib Dilakukan:**  
+> **Cabut modem dari port USB komputer, kemudian colokkan kembali secara normal** (tanpa menekan tombol atau men-short pin) agar modem dapat melakukan cold boot dan melanjutkan proses booting ke Debian Linux!
+
+---
+
 ## 🖥️ Cara Mengakses Perangkat Setelah Instalasi
 
-Setelah instalasi selesai dan modem selesai booting:
+Setelah modem dicolokkan kembali dan selesai booting (~40 detik):
 
 ### 1. Akses via SSH (USB Ethernet / Wi-Fi)
 - **IP Default**: `192.168.100.1`
