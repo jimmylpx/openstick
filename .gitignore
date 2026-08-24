@@ -1,7 +1,0 @@
-HM.bin
-*.raw
-*.tmp
-stock_extracted/
-base/debian/*.img
-base/osbuild/*.bin
-base/osbuild/*.zip
