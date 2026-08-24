@@ -1,33 +1,42 @@
 # OpenStick: Transform 4G USB Modem (Snapdragon 410 / MSM8916) into Linux Server
 
-[![Linux](https://img.shields.io/badge/OS-Debian%2012%20Bookworm%20ARM64-red.svg)](https://www.debian.org/)
+[![Linux](https://img.shields.io/badge/OS-Debian%2012%20%7C%2013%20ARM64-red.svg)](https://www.debian.org/)
 [![Kernel](https://img.shields.io/badge/Kernel-Linux%206.12.x--msm8916-blue.svg)](https://github.com/msm8916-mainline)
 [![License](https://img.shields.io/badge/License-GPLv3-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/jimmylpx/openstick)](https://github.com/jimmylpx/openstick/releases/tag/v1)
 
-Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **Qualcomm Snapdragon 410 (MSM8916)** (seperti board **HMUF02-V05**, **UZ801**, dan varian sejenis) dari firmware Android bawaan pabrik menjadi **perangkat server Linux murni (Debian 12 Bookworm 64-bit)** yang hemat daya, stabil, dan kaya fitur.
+Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **Qualcomm Snapdragon 410 (MSM8916)** (seperti board **HMUF02-V05**, **UZ801**, dan varian sejenis) dari firmware Android bawaan pabrik menjadi **perangkat server Linux murni (Debian 12 Bookworm / Debian 13 Trixie 64-bit)** yang hemat daya, stabil, dan kaya fitur.
 
 ---
 
-## 🌟 Fitur Utama
+## 🌟 Pilihan Edisi Sistem Operasi
 
-- **🚀 One-Click Automated Installer (`installer.sh`)**:
-  - Otomatis melakukan backup full firmware asli (`HM.bin`) via Qualcomm EDL 9008.
-  - Mengekstrak partisi baseband & EFS asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) secara dinamis langsung dari GPT dump.
-  - Mem-flash bootloader Qualcomm, CDT, kernel mainline Linux 6.12, dan Debian 12 rootfs.
+| Edisi OS | Ukuran Image | RAM Aktif | Penggunaan ROM | Fitur Utama |
+| :--- | :--- | :--- | :--- | :--- |
+| **Debian 12 (Bookworm)** | **~113 MB** | ~100 MB / 380 MB | ~351 MB / 3.4 GB | Stabil, Teruji, Ultra Ringan *(Rekomendasi)* |
+| **Debian 13 (Trixie)** | **~135 MB** | ~110 MB / 380 MB | ~386 MB / 3.4 GB | Terbaru, Glibc 2.41, Python 3.13, Native ADBD SDK 34 |
+
+---
+
+## 🌟 Fitur Utama & Kustomisasi
+
+- **🚀 Universal One-Click Installer (`installer.sh`)**:
+  - Pilihan interaktif untuk mem-flash **Debian 12 Bookworm** atau **Debian 13 Trixie**.
+  - Otomatis membuat full backup firmware asli (`HM.bin`) via Qualcomm EDL 9008.
+  - Mengekstrak partisi baseband & EFS asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) secara dinamis.
   - Memulihkan seluruh partisi modem asli sehingga SIM card (Telkomsel, Indosat, XL, Tri, Smartfren) langsung aktif *out-of-the-box*.
-- **🛡️ Pre-flight Dependency Check**: Memeriksa ketersediaan tool `adb`, `fastboot`, `edl`, `python3`, `unzip`, dan `wget` sebelum proses flashing dimulai.
+- **🛡️ Pre-flight Dependency Check**: Memeriksa ketersediaan tool `adb`, `fastboot`, `edl`, `python3`, `unzip`, dan `wget` sebelum flashing.
 - **❄️ Manajemen Termal Cerdas (Anti-Overheat & Anti-Restart)**:
   - **4G LTE Nonaktif Secara Default**: Menjaga perangkat tetap dingin saat awal booting.
-  - **Dynamic Thermal Throttling**: Ketika 4G LTE diaktifkan, daemon termal otomatis mematikan Core 2 & 3 (*core offlining*) dan membatasi frekuensi Core 0 & 1 (800MHz/400MHz) sehingga suhu tetap stabil di kisaran **~53°C – 57°C**.
-  - Saat 4G LTE dimatikan, semua 4 Core CPU otomatis dipulihkan ke kecepatan penuh (1.0 GHz).
+  - **Dynamic Thermal Throttling**: Ketika 4G LTE diaktifkan, daemon termal otomatis mematikan Core 2 & 3 (*core offlining*) dan membatasi frekuensi Core 0 & 1 sehingga suhu tetap stabil di **~53°C – 57°C**.
+  - Saat 4G LTE dimatikan, semua 4 Core CPU otomatis dipulihkan ke 1.0 GHz.
 - **🔌 Pengatur Mode USB (Host OTG / Gadget / Auto-Detect)**:
   - **Gadget Mode**: Untuk dicolokkan ke PC/Laptop (Network RNDIS + ADB).
   - **Host Mode (OTG)**: Untuk membaca Flashdisk, USB Hub, USB Ethernet, atau Keyboard.
-  - **Auto-Detect**: Otomatis mendeteksi role saat dicolokkan ke PC Host.
+  - **Auto-Detect**: Menyesuaikan role saat dicolokkan ke PC Host.
 - **📱 ADB Debugging Bawaan (Network & USB)**:
-  - Akses shell ADB via jaringan: `adb connect 192.168.100.1:5555` $\rightarrow$ `adb shell`.
-  - Akses shell ADB native langsung saat dicolokkan ke port USB.
+  - Akses shell ADB via jaringan: `adb connect 192.168.100.1:5555` -> `adb shell`.
+  - Akses shell ADB native saat dicolokkan ke port USB.
 - **🎛️ `sbrmenu` — TUI Network & Hardware Manager**:
   Menu interaktif berbasis TUI (`whiptail`) yang dapat dijalankan kapan saja dengan mengetik `sbrmenu`:
   1. **Buat Hotspot**: Konfigurasi SSID & Password WPA2 Personal, di-bridge ke `br0`.
@@ -42,7 +51,7 @@ Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **
 
 ## 🛠️ Persyaratan Sistem & Alat
 
-Pastikan komputer flasher (Linux / Raspberry Pi OS / Ubuntu / WSL2) telah menginstal dependensi berikut:
+Pastikan komputer flasher (Linux / Raspberry Pi OS / Ubuntu / WSL2) telah menginstal dependensi:
 
 ### Debian / Ubuntu / Raspberry Pi OS:
 ```bash
@@ -63,8 +72,8 @@ sudo pacman -S android-tools python unzip wget
 
 ### 1. Masuk ke Mode EDL 9008
 - Cabut dongle USB modem.
-- Tekan dan tahan tombol recovery / hubungkan pin test-point EDL (*Short Test Point* D+ / GND sesuai tipe board) lalu colokkan ke port USB PC.
-- Pastikan perangkat terdeteksi sebagai `05c6:9008 Qualcomm, Inc. Gobi Wireless Modem (QDL mode)` saat dicek dengan perintah `lsusb`.
+- Hubungkan pin test-point EDL (*Short Test Point* D+ / GND sesuai tipe board) lalu colokkan ke port USB PC.
+- Pastikan perangkat terdeteksi sebagai `05c6:9008 Qualcomm, Inc. Gobi Wireless Modem (QDL mode)` saat dicek dengan `lsusb`.
 
 ### 2. Unduh Paket Base Flasher
 ```bash
@@ -78,16 +87,7 @@ chmod +x installer.sh
 ```bash
 ./installer.sh
 ```
-
-Script akan mengeksekusi seluruh tahapan:
-1. Memeriksa dependensi sistem (`adb`, `fastboot`, `edl`).
-2. Membuat full backup `HM.bin` dari eMMC dan me-reset modem.
-3. Mengekstrak partisi baseband/modem asli.
-4. Menyalakan root pada ADB dan reboot ke fastboot.
-5. Mem-flash bootloader Qualcomm & konfigurasi CDT.
-6. Mengunduh dan mem-flash OS Debian 12 kustom (`openstick-debian.zip`).
-7. Memulihkan seluruh partisi modem asli dari dump.
-8. Melakukan final reboot ke Debian Linux.
+Pilih edisi OS yang diinginkan (Debian 12 Bookworm atau Debian 13 Trixie), dan script akan memproses seluruh tahapan hingga selesai!
 
 ---
 
@@ -95,46 +95,23 @@ Script akan mengeksekusi seluruh tahapan:
 
 Setelah instalasi selesai dan modem selesai booting:
 
-### 1. Akses via SSH (USB Ethernet / Wi-Fi)
+### 1. Akses via SSH
 - **IP Default**: `192.168.100.1`
 - **Username**: `user` (Password: `1`) atau `root` (Password: `1`)
-```bash
-ssh user@192.168.100.1
-```
+- **Perintah**:
+  ```bash
+  ssh user@192.168.100.1
+  ```
 
-### 2. Akses via ADB
-```bash
-adb connect 192.168.100.1:5555
-adb shell
-```
+### 2. Akses via ADB Shell
+- **Perintah**:
+  ```bash
+  adb connect 192.168.100.1:5555
+  adb shell
+  ```
 
-### 3. Menjalankan TUI Manager
-Cukup ketik:
+### 3. Mengelola Jaringan & Fitur
+Setelah login ke terminal modem, jalankan:
 ```bash
 sbrmenu
 ```
-
----
-
-## 📂 Struktur Direktori Repository
-
-```text
-.
-├── base/
-│   ├── installer.sh              # Master installer script
-│   ├── extract_hm_partitions.py  # Ekstraktor partisi modem dari dump GPT HM.bin
-│   ├── flash.sh                  # Flasher bootloader Qualcomm & CDT
-│   └── [File MBN SoC: aboot.bin, gpt_both0.bin, hyp.mbn, rpm.mbn, sbl1.mbn, tz.mbn, sbc_*.bin]
-├── openstick-debian.zip          # Image OS Debian 12 kustom (dikelola via Git LFS)
-└── README.md
-```
-
----
-
-## 🙏 Ucapan Terima Kasih & Kredit
-
-- **[OpenStick Project](https://github.com/OpenStick/OpenStick)** oleh *HandsomeYingyan*
-- **[OpenStick-Builder](https://github.com/LongQT-sea/OpenStick-Builder)** oleh *LongQT-sea*
-- **[Linux MSM8916 Mainline](https://github.com/msm8916-mainline)**
-- **[bkerler/edl](https://github.com/bkerler/edl)** oleh *B. Kerler*
-- **[DNSCrypt](https://github.com/DNSCrypt/dnscrypt-proxy)**
