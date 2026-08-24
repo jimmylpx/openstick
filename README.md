@@ -1,45 +1,31 @@
-# OpenStick: Transform 4G USB Modem (Snapdragon 410 / MSM8916) into Linux Server
+# OpenStick Snapdragon 410 (MSM8916) - Debian Linux Suite
 
-[![Linux](https://img.shields.io/badge/OS-Debian%2012%20%7C%2013%20ARM64-red.svg)](https://www.debian.org/)
+[![Linux](https://img.shields.io/badge/OS-Debian%2012%20ARM64-red.svg)](https://www.debian.org/)
 [![Kernel](https://img.shields.io/badge/Kernel-Linux%206.12.x--msm8916-blue.svg)](https://github.com/msm8916-mainline)
 [![License](https://img.shields.io/badge/License-GPLv3-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/jimmylpx/openstick)](https://github.com/jimmylpx/openstick/releases/tag/v1)
 
-Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **Qualcomm Snapdragon 410 (MSM8916)** (seperti board **HMUF02-V05**, **UZ801**, **UFI103S-V05**, dan varian sejenis) dari firmware Android bawaan pabrik menjadi **perangkat server Linux murni (Debian 12 Bookworm / Debian 13 Trixie 64-bit)** yang hemat daya, stabil, dan kaya fitur.
-
----
-
-## 🌟 Pilihan Edisi Sistem Operasi
-
-| Edisi OS | Ukuran Image | RAM Aktif | Penggunaan ROM | Fitur Utama |
-| :--- | :--- | :--- | :--- | :--- |
-| **Debian 12 (Bookworm)** | **~114 MB** | ~100 MB / 380 MB | ~351 MB / 3.4 GB | Stabil, Teruji, Ultra Ringan *(Rekomendasi)* |
-| **Debian 13 (Trixie)** | **~125 MB** | ~110 MB / 380 MB | ~386 MB / 3.4 GB | Versi Terbaru, Glibc 2.41, Python 3.13, Native ADBD SDK 34 |
+Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **Qualcomm Snapdragon 410 (MSM8916)** (seperti board **HMUF02-V05**, **UZ801**, **UFI103S-V05**, dan varian sejenis) dari firmware Android bawaan pabrik menjadi **perangkat server Linux murni (Debian 12 Bookworm 64-bit)** yang hemat daya, stabil, dan kaya fitur.
 
 ---
 
 ## 🌟 Fitur Utama & Kustomisasi
 
-- **🚀 Universal One-Click Installer (`installer.sh`)**:
-  - Pilihan interaktif untuk mem-flash **Debian 12 Bookworm** atau **Debian 13 Trixie**.
-  - Otomatis membuat full backup firmware asli (`HM.bin`) via Qualcomm EDL 9008.
-  - Mengekstrak partisi baseband & EFS asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) secara dinamis langsung dari dump GPT.
-  - Memulihkan seluruh partisi modem asli sehingga SIM card (Telkomsel, Indosat, XL, Tri, Smartfren) langsung aktif *out-of-the-box*.
-- **🛡️ Pre-flight Dependency Check**: Memeriksa ketersediaan tool `adb`, `fastboot`, `edl`, `python3`, `unzip`, dan `wget` sebelum proses flashing dimulai.
-- **❄️ Manajemen Termal Cerdas (Anti-Overheat & Anti-Restart)**:
+- **🚀 One-Click Master Installer (`installer.sh`)**:
+  - Alur otomatis: mendeteksi EDL 9008, backup partisi modem/IMEI asli, aktivasi root ADB, reboot bootloader, flash Base Generic, download & flash Debian transisi, serta flash Debian 12 Bookworm kustom.
+  - Memulihkan seluruh partisi modem asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) sehingga kartu SIM (Telkomsel, Indosat, XL, Tri, Smartfren) langsung aktif *out-of-the-box*.
+- **🛡️ Pre-flight Dependency Check**: Memeriksa ketersediaan tool `adb`, `fastboot`, `edl`, `unzip`, dan `wget` sebelum proses flashing dimulai.
+- **❄️ Manajemen Termal & Stabilitas**:
   - **4G LTE Nonaktif Secara Default**: Menjaga perangkat tetap dingin saat awal booting.
-  - **Dynamic Thermal Throttling**: Ketika 4G LTE diaktifkan, daemon termal otomatis mematikan Core 2 & 3 (*core offlining*) dan membatasi frekuensi Core 0 & 1 sehingga suhu tetap stabil di **~53°C – 57°C**.
-  - Saat 4G LTE dimatikan, semua 4 Core CPU otomatis dipulihkan ke 1.0 GHz.
+  - Saat 4G LTE diaktifkan, frekuensi CPU dikelola secara optimal agar suhu tetap stabil di **~53°C – 57°C**.
 - **🔌 Pengatur Mode USB (Host OTG / Gadget / Auto-Detect)**:
-  - **Gadget Mode**: Untuk dicolokkan ke PC/Laptop (Network RNDIS + ADB).
+  - **Gadget Mode**: Untuk dicolokkan ke PC/Laptop (Network RNDIS + ADB Serial).
   - **Host Mode (OTG)**: Untuk membaca Flashdisk, USB Hub, USB Ethernet, atau Keyboard.
-  - **Auto-Detect**: Menyesuaikan role saat dicolokkan ke PC Host.
+- **🔒 DNSCrypt-Proxy (Cloudflare DoH)**:
+  - Mengamankan koneksi DNS terenkripsi DNS over HTTPS (DoH) pada `127.0.0.1:5353` langsung terhubung ke Cloudflare.
 - **📱 ADB Debugging Bawaan (Network & USB)**:
   - Default shell ADB masuk sebagai akun **`user`** demi keamanan. Jika membutuhkan hak akses root, jalankan `sudo su` atau `su -` (Password: `1`).
   - Akses shell ADB via jaringan: `adb connect 192.168.100.1:5555` -> `adb shell`.
-  - Akses shell ADB native saat dicolokkan ke port USB.
-- **📊 Fastfetch Bawaan**:
-  - Menampilkan ringkasan informasi sistem, status CPU, RAM, kernel, dan IP lokal secara otomatis saat login (baik via SSH maupun ADB).
 - **🎛️ `sbrmenu` — TUI Network & Hardware Manager**:
   Menu interaktif berbasis TUI (`whiptail`) yang dapat dijalankan kapan saja dengan mengetik `sbrmenu`:
   1. **Buat Hotspot**: Konfigurasi SSID & Password WPA2 Personal, di-bridge ke `br0`.
@@ -114,17 +100,27 @@ Untuk board UZ801, terdapat **2 cara** untuk masuk ke mode EDL:
 
 ### 2. Unduh Paket Base Flasher
 ```bash
-wget https://github.com/jimmylpx/openstick/releases/download/v1/hmuf02-v05.zip
-unzip hmuf02-v05.zip
+wget https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip
+unzip base-generic.zip -d base
 cd base
 chmod +x installer.sh
 ```
+
+---
 
 ### 3. Jalankan Installer Otomatis
 ```bash
 ./installer.sh
 ```
-Pilih edisi OS yang diinginkan (Debian 12 Bookworm atau Debian 13 Trixie), dan script akan memproses seluruh tahapan (backup firmware asli, flash bootloader & OS, restore baseband modem) hingga selesai secara otomatis!
+
+Script akan secara otomatis mengeksekusi tahapan berikut:
+1. **Mendeteksi Mode EDL 9008**: Mem-backup partisi asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) ke folder `extracted/`, lalu menjalankan `edl reset`.
+2. **Aktivasi Root ADB**: Menunggu ADB aktif, mengeksekusi `setprop service.adb.root 1; busybox killall adbd`, lalu me-reboot perangkat ke Fastboot (`adb reboot bootloader`).
+3. **Flashing Base Generic**: Mem-flash partisi dasar dan partition table dari folder `base/`.
+4. **Download & Flash Transition Debian**: Mengunduh `debian-generic.zip` dan mem-flash `boot.img` & `rootfs.img`.
+5. **Download & Flash Debian 12 Bookworm**: Mengunduh `bookworm.zip` dan mem-flash firmware Debian 12 kustom (dengan `sbrmenu` & DNSCrypt-Proxy Cloudflare DoH terpasang).
+6. **Restore Baseband Modem**: Mengembalikan seluruh partisi asli dari folder `extracted/`.
+7. **Reboot ke Linux**: Me-reboot perangkat ke sistem operasi baru.
 
 ---
 
@@ -165,7 +161,7 @@ Setelah modem dicolokkan kembali dan selesai booting (~40 detik):
   ```
 - *Catatan*: Di dalam ADB shell, Anda dapat beralih ke root kapan saja dengan mengetik `sudo su` atau `su -` (Password: `1`).
 
-### 3. Mengelola Jaringan & Fitur
+### 3. Mengelola Jaringan & Fitur (`sbrmenu`)
 Setelah login ke terminal modem, jalankan menu interaktif:
 ```bash
 sbrmenu
