@@ -1,0 +1,654 @@
+#!/bin/bash
+# ==============================================================================
+# sbrmenu — TUI Network & Hardware Manager for OpenStick (Snapdragon 410 / MSM8916)
+# ==============================================================================
+
+# Pastikan tipe terminal valid untuk whiptail TUI (terutama di ADB shell)
+if [ -z "$TERM" ] || [ "$TERM" = "unknown" ] || [ "$TERM" = "dumb" ]; then
+    export TERM=xterm-256color
+fi
+
+# Pengecekan akses Root
+if [ "$EUID" -ne 0 ]; then
+    sudo TERM="${TERM:-xterm-256color}" "$0" "$@"
+    exit $?
+fi
+
+# Pastikan whiptail terinstall
+if ! command -v whiptail &> /dev/null; then
+    echo "Menginstal whiptail..."
+    apt-get update && apt-get install -y whiptail
+fi
+
+# Helper untuk mendeteksi file USB role
+get_usb_role_file() {
+    [ ! -d /sys/kernel/debug ] && mount -t debugfs none /sys/kernel/debug 2>/dev/null
+    for f in /sys/kernel/debug/usb/ci_hdrc.0/role /sys/kernel/debug/ci_hdrc.0/role /sys/class/usb_role/ci_hdrc.0-role/role; do
+        if [ -f "$f" ]; then
+            echo "$f"
+            return 0
+        fi
+    done
+    echo ""
+}
+
+get_current_usb_role() {
+    local rf=$(get_usb_role_file)
+    if [ -n "$rf" ] && [ -f "$rf" ]; then
+        cat "$rf" 2>/dev/null | tr -d ' \t\n\r'
+    else
+        if systemctl is-active --quiet msm8916-usb-gadget.service 2>/dev/null; then
+            echo "gadget"
+        else
+            echo "unknown"
+        fi
+    fi
+}
+
+while true; do
+    # ==========================================
+    # Cek Status 4G LTE untuk Menu Dinamis
+    # ==========================================
+    if nmcli -t -f NAME con show --active 2>/dev/null | grep -xq "lte"; then
+        LTE_MENU_LABEL="Matikan 4G LTE (Modem)"
+        LTE_STATE="active"
+    else
+        LTE_MENU_LABEL="Aktifkan 4G LTE (Modem)"
+        LTE_STATE="inactive"
+    fi
+
+    # Cek Status DNSCrypt-Proxy
+    if systemctl is-active --quiet dnscrypt-proxy.service 2>/dev/null || pgrep -x "dnscrypt-proxy" >/dev/null 2>&1; then
+        DNS_MENU_LABEL="Kelola DNSCrypt-Proxy [AKTIF]"
+    else
+        DNS_MENU_LABEL="Aktivasi DNSCrypt-Proxy [NONAKTIF]"
+    fi
+
+    # Cek Status USB Role
+    CUR_USB=$(get_current_usb_role)
+    USB_MENU_LABEL="Atur Mode USB (Saat ini: ${CUR_USB^^})"
+    # ==========================================
+
+    # Tampilkan Menu Utama dengan 7 Pilihan
+    CHOICE=$(whiptail --title "OpenStick TUI Network & Hardware Manager (sbrmenu)" \
+    --menu "Pilih menu konfigurasi:" 22 70 7 \
+    "1" "Buat Hotspot (Bridge ke br0)" \
+    "2" "Aktifkan Wi-Fi Client (Auto-Fallback Darurat)" \
+    "3" "$LTE_MENU_LABEL" \
+    "4" "Papan Chat SMS (Modem Inbox/Outbox)" \
+    "5" "$DNS_MENU_LABEL" \
+    "6" "Install Pi-hole (Interactive Wizard)" \
+    "7" "$USB_MENU_LABEL" \
+    3>&1 1>&2 2>&3)
+
+    if [ $? != 0 ]; then
+        clear
+        exit 0
+    fi
+
+    case $CHOICE in
+        "1")
+            # --- MENU 1: BUAT HOTSPOT ---
+            SSID=$(whiptail --title "Konfigurasi Hotspot Bridge" \
+            --inputbox "Masukkan nama SSID untuk Hotspot (wlan0):" 10 60 "WiFi_Saya" \
+            3>&1 1>&2 2>&3)
+            [ $? != 0 ] && continue
+
+            PASSWORD=$(whiptail --title "Konfigurasi Hotspot Bridge" \
+            --passwordbox "Masukkan Password WPA2 Personal (minimal 8 karakter):" 10 60 \
+            3>&1 1>&2 2>&3)
+            [ $? != 0 ] && continue
+
+            if [ ${#PASSWORD} -lt 8 ]; then
+                whiptail --title "Error" --msgbox "Password gagal! WPA2 membutuhkan minimal 8 karakter." 8 50
+                continue
+            fi
+
+            {
+                echo -e "XXX\n10\nMengecek koneksi Bridge (br0)...\nXXX"
+                sleep 1
+                if ! nmcli con show "br0" > /dev/null 2>&1; then
+                    nmcli con add type bridge ifname br0 con-name br0 > /dev/null 2>&1
+                fi
+
+                echo -e "XXX\n30\nMembersihkan hotspot lama...\nXXX"
+                sleep 1
+                nmcli con delete "hotspot" > /dev/null 2>&1
+                nmcli con delete "Hotspot" > /dev/null 2>&1
+
+                echo -e "XXX\n40\nMenonaktifkan Auto-Connect Wi-Fi sebelumnya...\nXXX"
+                sleep 1
+                nmcli -g NAME,TYPE connection show | grep ":802-11-wireless" | cut -d: -f1 | while read profile; do
+                    if [ "$profile" != "hotspot" ] && [ "$profile" != "Hotspot" ]; then
+                        nmcli con modify "$profile" connection.autoconnect no connection.autoconnect-retries -1 >/dev/null 2>&1
+                    fi
+                done
+
+                echo -e "XXX\n50\nMembuat konfigurasi AP Bridge baru...\nXXX"
+                sleep 1
+                nmcli con add type wifi ifname wlan0 master br0 con-name hotspot ssid "$SSID" > /dev/null 2>&1
+                
+                echo -e "XXX\n70\nMengatur mode AP dan Keamanan...\nXXX"
+                sleep 1
+                nmcli con modify hotspot 802-11-wireless.mode ap 802-11-wireless.band bg
+                nmcli con modify hotspot wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$PASSWORD"
+                nmcli con modify hotspot ipv4.method disabled ipv6.method disabled > /dev/null 2>&1
+
+                echo -e "XXX\n90\nMengaktifkan Hotspot di dalam Bridge...\nXXX"
+                sleep 1
+                nmcli con up hotspot > /dev/null 2>&1
+
+                echo -e "XXX\n100\nSelesai!\nXXX"
+                sleep 1
+            } | whiptail --title "Menyimpan Pengaturan" --gauge "Sedang mengonfigurasi wlan0 ke dalam br0..." 8 60 0
+
+            whiptail --title "Berhasil" --msgbox "Hotspot '$SSID' berhasil dibuat dan di-bridge ke br0!" 8 55
+            ;;
+
+        "2")
+            # --- MENU 2: AKTIFKAN WIFI CLIENT ---
+            TARGET_SSID=$(whiptail --title "Input Wi-Fi Target" \
+            --inputbox "Masukkan nama SSID Wi-Fi tujuan secara manual (Perhatikan huruf besar/kecil):" 10 65 \
+            3>&1 1>&2 2>&3)
+            
+            if [ $? != 0 ] || [ -z "$TARGET_SSID" ]; then
+                continue
+            fi
+
+            WIFI_PASS=$(whiptail --title "Input Password Wi-Fi" \
+            --passwordbox "Masukkan Password untuk Wi-Fi '$TARGET_SSID':\n(Kosongkan jika jaringan terbuka/open)" 10 65 \
+            3>&1 1>&2 2>&3)
+
+            [ $? != 0 ] && continue
+
+            whiptail --title "PERINGATAN EKSEKUSI!" \
+            --yesno "Sistem akan segera menghapus Hotspot Anda saat ini dan mencoba menghubungkan perangkat ke SSID '$TARGET_SSID'.\n\n- KONEKSI SSH ANDA (jika via Wi-Fi) AKAN SEGERA TERPUTUS!\n- Proses ini akan berjalan otomatis di latar belakang.\n- Jika dalam 45 detik perangkat gagal terhubung ke '$TARGET_SSID', sistem akan otomatis membuat Hotspot darurat (SSID: 4G-UFI-XX, Pass: 1234567890).\n\nApakah Anda yakin ingin mengeksekusi sekarang?" 16 70
+            
+            if [ $? != 0 ]; then
+                continue
+            fi
+
+            cat << 'INNER_EOF' > /tmp/wifi_connect_bg.sh
+#!/bin/bash
+TARGET="$1"
+PASS="$2"
+
+nmcli con delete "$TARGET" >/dev/null 2>&1
+nmcli con delete "hotspot" >/dev/null 2>&1
+nmcli con delete "Hotspot" >/dev/null 2>&1
+nmcli device disconnect wlan0 >/dev/null 2>&1
+sleep 3
+
+if [ -z "$PASS" ]; then
+    nmcli dev wifi connect "$TARGET" ifname wlan0 >/dev/null 2>&1
+else
+    nmcli dev wifi connect "$TARGET" password "$PASS" ifname wlan0 >/dev/null 2>&1
+fi
+
+sleep 35
+
+STATE=$(nmcli -g GENERAL.STATE dev show wlan0 2>/dev/null)
+if [[ "$STATE" != *"100 (connected)"* ]]; then
+    nmcli con delete "$TARGET" >/dev/null 2>&1
+    nmcli device disconnect wlan0 >/dev/null 2>&1
+    sleep 2
+
+    if ! nmcli con show "br0" > /dev/null 2>&1; then
+        nmcli con add type bridge ifname br0 con-name br0 > /dev/null 2>&1
+    fi
+    
+    nmcli con add type wifi ifname wlan0 master br0 con-name hotspot ssid "4G-UFI-XX" >/dev/null 2>&1
+    nmcli con modify hotspot 802-11-wireless.mode ap 802-11-wireless.band bg
+    nmcli con modify hotspot wifi-sec.key-mgmt wpa-psk wifi-sec.psk "1234567890"
+    nmcli con modify hotspot ipv4.method disabled ipv6.method disabled >/dev/null 2>&1
+    nmcli con up hotspot >/dev/null 2>&1
+else
+    nmcli connection modify "$TARGET" connection.autoconnect yes connection.autoconnect-retries 0 >/dev/null 2>&1
+    systemctl restart NetworkManager
+fi
+INNER_EOF
+            chmod +x /tmp/wifi_connect_bg.sh
+            nohup /tmp/wifi_connect_bg.sh "$TARGET_SSID" "$WIFI_PASS" </dev/null >/dev/null 2>&1 &
+            disown
+
+            whiptail --title "Proses Berjalan!" --msgbox "Perintah telah dikirim ke mesin latar belakang.\n\nJika Anda meremote melalui Wi-Fi, terminal ini mungkin akan macet (freeze) sebentar lagi.\n\nSilakan tunggu ~1 Menit. Jika gagal, silakan hubungkan perangkat Anda ke hotspot '4G-UFI-XX' (Pass: 1234567890)." 13 65
+            clear
+            exit 0
+            ;;
+
+        "3")
+            # --- MENU 3: TOGGLE 4G LTE ---
+            if [ "$LTE_STATE" = "inactive" ]; then
+                if command -v mmcli &> /dev/null; then
+                    MODEM_LIST=$(mmcli -L 2>/dev/null)
+                    if [ -z "$MODEM_LIST" ] || echo "$MODEM_LIST" | grep -qi "No modems were found"; then
+                        whiptail --title "Error: Modem Tidak Ditemukan" \
+                        --msgbox "Modem tidak terdeteksi oleh ModemManager!\n\nPastikan modul modem aktif." 10 60
+                        continue
+                    fi
+
+                    MODEM_IDX=$(echo "$MODEM_LIST" | grep -o 'Modem/[0-9]*' | head -n 1 | cut -d'/' -f2)
+                    if mmcli -m "$MODEM_IDX" 2>/dev/null | grep -qi "sim-missing"; then
+                        whiptail --title "Error: SIM Missing" \
+                        --msgbox "Kartu SIM tidak terdeteksi (SIM Missing)!\n\nPastikan kartu SIM sudah terpasang dengan benar." 10 60
+                        continue
+                    fi
+                fi
+
+                APN=$(whiptail --title "Aktivasi 4G LTE" \
+                --inputbox "Masukkan APN Provider Anda:" 10 60 "internet" \
+                3>&1 1>&2 2>&3)
+                
+                [ $? != 0 ] && continue
+
+                {
+                    echo -e "XXX\n20\nMengecek profil koneksi LTE...\nXXX"
+                    sleep 1
+                    if ! nmcli con show "lte" > /dev/null 2>&1; then
+                        nmcli con add type gsm ifname cdc-wdm0 con-name lte apn "$APN" > /dev/null 2>&1 || \
+                        nmcli con add type gsm con-name lte apn "$APN" > /dev/null 2>&1
+                    fi
+                    echo -e "XXX\n50\nMengonfigurasi APN menjadi '$APN'...\nXXX"
+                    sleep 1
+                    nmcli connection modify lte gsm.apn "$APN" > /dev/null 2>&1
+                    echo -e "XXX\n80\nMengaktifkan koneksi seluler...\nXXX"
+                    sleep 1
+                    nmcli connection up lte > /dev/null 2>&1
+                    echo -e "XXX\n100\nSelesai!\nXXX"
+                    sleep 1
+                } | whiptail --title "Menyimpan Pengaturan" --gauge "Sedang mengaktifkan 4G LTE..." 8 60 0
+
+                whiptail --title "Informasi" --msgbox "Perintah aktivasi 4G LTE (APN: $APN) telah dieksekusi." 8 55
+            else
+                whiptail --title "Konfirmasi" --yesno "Apakah Anda yakin ingin mematikan koneksi seluler 4G LTE?" 8 60
+                
+                if [ $? -eq 0 ]; then
+                    {
+                        echo -e "XXX\n50\nMemutus koneksi seluler...\nXXX"
+                        sleep 1
+                        nmcli connection down lte > /dev/null 2>&1
+                        echo -e "XXX\n100\nSelesai!\nXXX"
+                        sleep 1
+                    } | whiptail --title "Mematikan Jaringan" --gauge "Sedang mematikan 4G LTE..." 8 60 0
+
+                    whiptail --title "Informasi" --msgbox "Koneksi 4G LTE berhasil dimatikan." 8 50
+                fi
+            fi
+            ;;
+
+        "4")
+            # --- MENU 4: PAPAN CHAT SMS ---
+            if ! command -v mmcli &> /dev/null; then
+                whiptail --title "Error" --msgbox "Perintah 'mmcli' tidak ditemukan!" 8 60
+                continue
+            fi
+
+            whiptail --title "Harap Tunggu" --infobox "Mempersiapkan mesin obrolan (Sync Modem)..." 8 55
+
+            MODEM_IDX=$(mmcli -L 2>/dev/null | grep -o 'Modem/[0-9]*' | head -n 1 | cut -d'/' -f2)
+            if [ -z "$MODEM_IDX" ]; then
+                whiptail --title "Error" --msgbox "Modem tidak terdeteksi oleh sistem!" 8 40
+                continue
+            fi
+
+            SIM_PATH=$(mmcli -m "$MODEM_IDX" 2>/dev/null | grep -o 'SIM/[0-9]*' | head -n 1)
+            if [ -n "$SIM_PATH" ]; then
+                SIM_IDX=$(echo "$SIM_PATH" | cut -d'/' -f2)
+                ICCID=$(mmcli -i "$SIM_IDX" 2>/dev/null | grep -i 'iccid:' | awk '{print $3}' | tr -d "'")
+                [ -z "$ICCID" ] && ICCID="UNKNOWN_SIM"
+            else
+                ICCID="UNKNOWN_SIM"
+            fi
+
+            CACHE_DIR="/root/.sms_cache"
+            mkdir -p "$CACHE_DIR"
+            CACHE_FILE="$CACHE_DIR/sim_${ICCID}.db"
+            TMP_CACHE="/tmp/sim_${ICCID}_sync.tmp"
+            
+            > "$TMP_CACHE"
+            touch "$CACHE_FILE"
+
+            SMS_INDICES=$(mmcli -m "$MODEM_IDX" --messaging-list-sms 2>/dev/null | grep -o 'SMS/[0-9]*' | cut -d'/' -f2)
+            TOTAL_SMS=$(echo $SMS_INDICES | wc -w)
+            
+            # SINKRONISASI PESAN MASUK DARI MODEM
+            if [ "$TOTAL_SMS" -gt 0 ]; then
+                {
+                    CURRENT=0
+                    for idx in $SMS_INDICES; do
+                        CURRENT=$((CURRENT + 1))
+                        PERCENT=$((CURRENT * 100 / TOTAL_SMS))
+                        
+                        CACHE_LINE=$(grep "^${idx}:" "$CACHE_FILE" 2>/dev/null | head -n 1)
+
+                        if [ -n "$CACHE_LINE" ]; then
+                            echo -e "XXX\n$PERCENT\nMenyelaraskan Chat $CURRENT dari $TOTAL_SMS (Dari Cache)...\nXXX"
+                            echo "$CACHE_LINE" >> "$TMP_CACHE"
+                        else
+                            echo -e "XXX\n$PERCENT\nMenarik Pesan Masuk $CURRENT dari $TOTAL_SMS (Pesan Baru)...\nXXX"
+                            SENDER=$(mmcli -s "$idx" 2>/dev/null | grep -i "number:" | sed 's/^.*number: //' | tr -d "'\"\`")
+                            [ -z "$SENDER" ] && SENDER="Unknown"
+
+                            TIME_FULL=$(mmcli -s "$idx" 2>/dev/null | grep -i "timestamp:" | sed 's/^.*timestamp: //' | tr -d "'\"\`")
+                            [ -z "$TIME_FULL" ] && TIME_FULL="Waktu Tidak Diketahui"
+
+                            FULLTEXT=$(mmcli -s "$idx" 2>/dev/null | grep -i "text:" | sed 's/^.*text: //' | tr -d "'")
+                            
+                            PREVIEW=$(echo "$FULLTEXT" | tr '\n' ' ' | cut -c 1-30)
+                            [ -z "$PREVIEW" ] && PREVIEW="(Tidak ada teks)"
+
+                            SENDER_B64=$(echo -n "$SENDER" | base64 -w 0)
+                            TIME_B64=$(echo -n "$TIME_FULL" | base64 -w 0)
+                            PREVIEW_B64=$(echo -n "$PREVIEW" | base64 -w 0)
+                            FULLTEXT_B64=$(echo -n "$FULLTEXT" | base64 -w 0)
+
+                            echo "${idx}:${SENDER_B64}:${TIME_B64}:${PREVIEW_B64}:${FULLTEXT_B64}" >> "$TMP_CACHE"
+                        fi
+                    done
+                } | whiptail --title "Sinkronisasi Obrolan" --gauge "Mencocokkan SMS Modem & Database..." 8 60 0
+            fi
+
+            grep "^TX_" "$CACHE_FILE" >> "$TMP_CACHE" 2>/dev/null
+            mv "$TMP_CACHE" "$CACHE_FILE"
+
+            # =========================================================
+            # LEVEL 1: DAFTAR OBROLAN (KONTAK/THREAD)
+            # =========================================================
+            while true; do
+                THREAD_OPTIONS=("NEW" "[+] Tulis Pesan ke Nomor Baru")
+                
+                if [ -s "$CACHE_FILE" ]; then
+                    for b64_num in $(cut -d':' -f2 "$CACHE_FILE" | sort | uniq); do
+                        NUM_DECODED=$(echo "$b64_num" | base64 -d 2>/dev/null)
+                        [ -z "$NUM_DECODED" ] && continue
+                        COUNT=$(grep ":${b64_num}:" "$CACHE_FILE" | grep -v "^TX_" | wc -l)
+                        
+                        THREAD_OPTIONS+=("$NUM_DECODED" "($COUNT pesan)")
+                    done
+                fi
+
+                SELECTED_THREAD=$(whiptail --title "Obrolan SMS (SIM: $ICCID)" \
+                --menu "Pilih kontak untuk membuka riwayat chat:" 20 75 12 \
+                "${THREAD_OPTIONS[@]}" \
+                3>&1 1>&2 2>&3)
+
+                if [ $? != 0 ]; then
+                    break
+                fi
+
+                if [ "$SELECTED_THREAD" == "NEW" ]; then
+                    NEW_NUM=$(whiptail --title "Chat Baru" \
+                    --inputbox "Masukkan Nomor Tujuan (contoh: 08... atau +628...):" 10 60 \
+                    3>&1 1>&2 2>&3)
+                    
+                    [ $? != 0 ] || [ -z "$NEW_NUM" ] && continue
+                    SELECTED_THREAD_B64=$(echo -n "$NEW_NUM" | base64 -w 0)
+                else
+                    SELECTED_THREAD_B64=$(echo -n "$SELECTED_THREAD" | base64 -w 0)
+                fi
+
+                # =========================================================
+                # LEVEL 2: PAPAN CHAT (DIURUTKAN BERDASARKAN WAKTU)
+                # =========================================================
+                while true; do
+                    TARGET_NUM_DEC=$(echo "$SELECTED_THREAD_B64" | base64 -d 2>/dev/null)
+                    
+                    declare -A CHAT_MAP
+                    CHAT_OPTIONS=("REPLY" "[+] Balas / Ketik Pesan Baru")
+
+                    > /tmp/thread_sort.tmp
+                    if grep -q ":${SELECTED_THREAD_B64}:" "$CACHE_FILE"; then
+                        while IFS= read -r line; do
+                            [ -z "$line" ] && continue
+                            T_B64=$(echo "$line" | cut -d':' -f3)
+                            T_DEC=$(echo "$T_B64" | base64 -d 2>/dev/null)
+                            SORT_KEY=$(echo "$T_DEC" | tr -d ' /:+,T-')
+                            
+                            echo "${SORT_KEY}|${line}" >> /tmp/thread_sort.tmp
+                        done <<< "$(grep ":${SELECTED_THREAD_B64}:" "$CACHE_FILE")"
+                    fi
+
+                    RX_COUNTER=1
+                    TX_COUNTER=1
+                    
+                    while IFS='|' read -r skey line; do
+                        [ -z "$line" ] && continue
+                        MSG_ID=$(echo "$line" | cut -d':' -f1)
+                        MSG_PREVIEW=$(echo "$line" | cut -d':' -f4 | base64 -d 2>/dev/null)
+                        
+                        if [[ "$MSG_ID" == TX_* ]]; then
+                            LABEL="[Anda]"
+                            UI_TAG=">$TX_COUNTER"
+                            ((TX_COUNTER++))
+                        else
+                            LABEL="[$TARGET_NUM_DEC]"
+                            UI_TAG="$RX_COUNTER"
+                            ((RX_COUNTER++))
+                        fi
+                        
+                        CHAT_MAP["$UI_TAG"]="$MSG_ID"
+                        CHAT_OPTIONS+=("$UI_TAG" "$LABEL $MSG_PREVIEW...")
+                    done < <(sort -n /tmp/thread_sort.tmp)
+
+                    SELECTED_UI_MSG=$(whiptail --title "Chat: $TARGET_NUM_DEC" \
+                    --menu "Papan Obrolan (Pesan Teratas = Terlama):" 22 75 14 \
+                    "${CHAT_OPTIONS[@]}" \
+                    3>&1 1>&2 2>&3)
+
+                    if [ $? != 0 ]; then
+                        break
+                    fi
+
+                    # --- MENGIRIM PESAN BARU / BALAS ---
+                    if [ "$SELECTED_UI_MSG" == "REPLY" ]; then
+                        MSG_TEXT=$(whiptail --title "Kirim ke $TARGET_NUM_DEC" \
+                        --inputbox "Ketikkan isi pesan Anda:" 10 60 \
+                        3>&1 1>&2 2>&3)
+                        
+                        [ $? != 0 ] || [ -z "$MSG_TEXT" ] && continue
+
+                        SAFE_MSG=$(echo "$MSG_TEXT" | tr -d '"' | tr -d "'")
+
+                        whiptail --title "Mengirim..." --infobox "Sedang mengirim pesan ke $TARGET_NUM_DEC...\nMohon tunggu..." 8 60
+                        
+                        CREATE_RES=$(mmcli -m "$MODEM_IDX" --messaging-create-sms="text=\"$SAFE_MSG\",number=\"$TARGET_NUM_DEC\"" 2>&1)
+                        NEW_IDX=$(echo "$CREATE_RES" | grep -o 'SMS/[0-9]*' | cut -d'/' -f2)
+
+                        if [ -n "$NEW_IDX" ]; then
+                            mmcli -s "$NEW_IDX" --send >/dev/null 2>&1
+                            if [ $? -eq 0 ]; then
+                                TX_ID="TX_$(date +%s)_$RANDOM"
+                                TIME_B64=$(echo -n "$(date '+%y/%m/%d,%H:%M:%S')" | base64 -w 0)
+                                
+                                PREVIEW_SHORT=$(echo "$SAFE_MSG" | tr '\n' ' ' | cut -c 1-30)
+                                PREVIEW_B64=$(echo -n "$PREVIEW_SHORT" | base64 -w 0)
+                                FULL_B64=$(echo -n "$SAFE_MSG" | base64 -w 0)
+                                
+                                echo "${TX_ID}:${SELECTED_THREAD_B64}:${TIME_B64}:${PREVIEW_B64}:${FULL_B64}" >> "$CACHE_FILE"
+                                whiptail --title "Sukses" --msgbox "Pesan berhasil terkirim ke $TARGET_NUM_DEC!" 8 50
+                            else
+                                whiptail --title "Gagal" --msgbox "Pesan gagal dikirim ke jaringan." 8 50
+                            fi
+                            mmcli -m "$MODEM_IDX" --messaging-delete-sms="$NEW_IDX" >/dev/null 2>&1
+                        else
+                            whiptail --title "Error" --msgbox "Modem gagal membuat D-Bus struktur pesan: $CREATE_RES" 10 60
+                        fi
+                        
+                        continue
+                    fi
+
+                    # --- BACA TEKS PENUH ATAU HAPUS PESAN ---
+                    REAL_MSG_ID="${CHAT_MAP[$SELECTED_UI_MSG]}"
+                    CACHE_LINE=$(grep "^${REAL_MSG_ID}:" "$CACHE_FILE" | head -n 1)
+                    
+                    TIME_FULL=$(echo "$CACHE_LINE" | cut -d':' -f3 | base64 -d 2>/dev/null)
+                    FULL_TEXT=$(echo "$CACHE_LINE" | cut -d':' -f5 | base64 -d 2>/dev/null)
+                    
+                    if [[ "$REAL_MSG_ID" == TX_* ]]; then
+                        HEADER_INFO="Dari: Anda (Pesan Terkirim)\nKe: $TARGET_NUM_DEC"
+                    else
+                        HEADER_INFO="Dari: $TARGET_NUM_DEC\nKe: Anda (Pesan Masuk)"
+                    fi
+
+                    whiptail --title "Detail Pesan" \
+                    --yes-button "Kembali" \
+                    --no-button "Hapus Pesan" \
+                    --scrolltext \
+                    --yesno "$HEADER_INFO\nWaktu: $TIME_FULL\n\nIsi Pesan:\n$FULL_TEXT" 20 65
+
+                    if [ $? -eq 1 ]; then
+                        whiptail --title "Konfirmasi Hapus" --yesno "Hapus chat ini secara permanen?" 8 50
+                        if [ $? -eq 0 ]; then
+                            if [[ "$REAL_MSG_ID" != TX_* ]]; then
+                                mmcli -m "$MODEM_IDX" --messaging-delete-sms="$REAL_MSG_ID" >/dev/null 2>&1
+                            fi
+                            
+                            sed -i "/^${REAL_MSG_ID}:/d" "$CACHE_FILE"
+                            
+                            if ! grep -q ":${SELECTED_THREAD_B64}:" "$CACHE_FILE"; then
+                                break
+                            fi
+                        fi
+                    fi
+                done
+            done
+            ;;
+            
+        "5")
+            # --- MENU 5: KELOLA DNSCRYPT-PROXY ---
+            if [ ! -f "/opt/dnscrypt-proxy/dnscrypt-proxy" ]; then
+                whiptail --title "Error" --msgbox "Executable dnscrypt-proxy tidak ditemukan di /opt/dnscrypt-proxy/dnscrypt-proxy!" 10 65
+                continue
+            fi
+
+            IS_DNS_RUNNING="Nonaktif"
+            if systemctl is-active --quiet dnscrypt-proxy.service 2>/dev/null || pgrep -x "dnscrypt-proxy" >/dev/null 2>&1; then
+                IS_DNS_RUNNING="AKTIF (Running)"
+            fi
+
+            DNS_ACTION=$(whiptail --title "Kelola DNSCrypt-Proxy (Cloudflare DoH)" \
+            --menu "Status Saat ini: $IS_DNS_RUNNING\nListening: 127.0.0.1:5353\n\nPilih tindakan:" 18 65 4 \
+            "1" "Aktifkan & Enable Service (Start DoH)" \
+            "2" "Matikan Service (Stop DoH)" \
+            "3" "Restart DNSCrypt-Proxy" \
+            "4" "Uji Coba Resolusi DNS (Test Query)" \
+            3>&1 1>&2 2>&3)
+
+            [ $? != 0 ] && continue
+
+            case $DNS_ACTION in
+                "1")
+                    {
+                        echo -e "XXX\n20\nMenyiapkan file konfigurasi service...\nXXX"
+                        sleep 1
+                        if [ ! -f "/etc/systemd/system/dnscrypt-proxy.service" ]; then
+                            /opt/dnscrypt-proxy/dnscrypt-proxy -service install >/dev/null 2>&1 || true
+                        fi
+                        echo -e "XXX\n60\nMengaktifkan service systemd...\nXXX"
+                        systemctl daemon-reload >/dev/null 2>&1
+                        systemctl enable dnscrypt-proxy.service >/dev/null 2>&1
+                        systemctl start dnscrypt-proxy.service >/dev/null 2>&1
+                        sleep 2
+                        echo -e "XXX\n100\nSelesai!\nXXX"
+                        sleep 1
+                    } | whiptail --title "Aktivasi DNSCrypt-Proxy" --gauge "Sedang mengaktifkan DNSCrypt-Proxy..." 8 60 0
+                    whiptail --title "Sukses" --msgbox "DNSCrypt-Proxy berhasil diaktifkan pada 127.0.0.1:5353!" 8 60
+                    ;;
+                "2")
+                    systemctl stop dnscrypt-proxy.service >/dev/null 2>&1
+                    systemctl disable dnscrypt-proxy.service >/dev/null 2>&1
+                    pkill -f dnscrypt-proxy 2>/dev/null || true
+                    whiptail --title "Informasi" --msgbox "DNSCrypt-Proxy telah dimatikan." 8 50
+                    ;;
+                "3")
+                    systemctl restart dnscrypt-proxy.service >/dev/null 2>&1
+                    whiptail --title "Informasi" --msgbox "DNSCrypt-Proxy telah di-restart." 8 50
+                    ;;
+                "4")
+                    whiptail --title "Harap Tunggu" --infobox "Melakukan DNS Query ke 127.0.0.1:5353..." 8 55
+                    TEST_RES=$(nslookup -port=5353 google.com 127.0.0.1 2>&1 || dig @127.0.0.1 -p 5353 google.com +short 2>&1 || curl -s --resolve cloudflare.com:5353:127.0.0.1 https://cloudflare.com 2>&1 | head -n 5)
+                    whiptail --title "Hasil Uji Coba DNS" --scrolltext --msgbox "Hasil Pengujian Query:\n\n$TEST_RES" 16 65
+                    ;;
+            esac
+            ;;
+
+        "6")
+            # --- MENU 6: INSTALL PI-HOLE ---
+            whiptail --title "Konfirmasi Instalasi" --yesno "Anda akan menginstal Pi-hole.\n\nPERHATIAN:\nProses ini membutuhkan koneksi internet aktif dan akan membuka jendela pengaturan (Wizard) interaktif bawaan Pi-hole.\n\nApakah Anda ingin melanjutkan instalasi sekarang?" 12 65
+            
+            if [ $? -eq 0 ]; then
+                clear
+                echo "========================================================="
+                echo "Memulai instalasi Pi-hole. Mohon tunggu..."
+                echo "========================================================="
+                
+                curl -sSL https://install.pi-hole.net | bash
+                
+                echo ""
+                echo "========================================================="
+                echo "Proses instalasi/konfigurasi Pi-hole telah selesai."
+                echo "Tekan ENTER untuk kembali ke menu utama..."
+                read -r
+            fi
+            ;;
+
+        "7")
+            # --- MENU 7: ATUR MODE USB ---
+            ROLE_FILE=$(get_usb_role_file)
+            CUR_ROLE=$(get_current_usb_role)
+
+            USB_CHOICE=$(whiptail --title "Atur Mode USB (Hardware Role)" \
+            --menu "Status Mode USB Saat Ini: ${CUR_ROLE^^}\nPath sysfs: ${ROLE_FILE:-'(Not found)'}\n\nPilih mode USB yang diinginkan:" 18 68 3 \
+            "1" "Switch ke Mode Gadget (Default USB Dongle / RNDIS)" \
+            "2" "Switch ke Mode Host OTG (Flashdisk/Keyboard/Hub)" \
+            "3" "Set Default Boot Mode (Permanen saat Startup)" \
+            3>&1 1>&2 2>&3)
+
+            [ $? != 0 ] && continue
+
+            case $USB_CHOICE in
+                "1")
+                    {
+                        echo -e "XXX\n30\nMengaktifkan role Gadget...\nXXX"
+                        if [ -n "$ROLE_FILE" ]; then
+                            echo gadget > "$ROLE_FILE" 2>/dev/null || true
+                        fi
+                        sleep 1
+                        echo -e "XXX\n70\nMemulai service msm8916-usb-gadget...\nXXX"
+                        systemctl restart msm8916-usb-gadget.service >/dev/null 2>&1 || true
+                        echo -e "XXX\n100\nSelesai!\nXXX"
+                        sleep 1
+                    } | whiptail --title "USB Gadget Mode" --gauge "Mengalihkan ke Mode Gadget..." 8 60 0
+                    whiptail --title "Sukses" --msgbox "Perangkat berhasil dialihkan ke Mode Gadget (RNDIS / ACM Serial / UMS)!" 8 65
+                    ;;
+                "2")
+                    {
+                        echo -e "XXX\n30\nMenonaktifkan service USB Gadget...\nXXX"
+                        systemctl stop msm8916-usb-gadget.service >/dev/null 2>&1 || true
+                        sleep 1
+                        echo -e "XXX\n70\nMengaktifkan role Host OTG...\nXXX"
+                        if [ -n "$ROLE_FILE" ]; then
+                            echo host > "$ROLE_FILE" 2>/dev/null || true
+                        fi
+                        echo -e "XXX\n100\nSelesai!\nXXX"
+                        sleep 1
+                    } | whiptail --title "USB Host OTG Mode" --gauge "Mengalihkan ke Mode Host OTG..." 8 60 0
+                    whiptail --title "Sukses" --msgbox "Perangkat berhasil dialihkan ke Mode Host OTG!\n\nAnda kini dapat mencolokkan Flashdisk, Keyboard, atau USB Hub melalui kabel OTG." 10 65
+                    ;;
+                "3")
+                    BOOT_DEF=$(whiptail --title "Set Default USB Boot Mode" \
+                    --menu "Pilih mode default yang aktif setiap kali perangkat dinyalakan:" 14 65 2 \
+                    "gadget" "Mode Gadget (RNDIS USB Dongle - Disarankan)" \
+                    "host" "Mode Host OTG (Membaca Flashdisk/Periferal)" \
+                    3>&1 1>&2 2>&3)
+                    
+                    if [ $? -eq 0 ] && [ -n "$BOOT_DEF" ]; then
+                        echo "MODE=\"$BOOT_DEF\"" > /etc/default/usb-mode
+                        systemctl enable usb-mode-init.service >/dev/null 2>&1 || true
+                        whiptail --title "Pengaturan Tersimpan" --msgbox "Default boot mode USB berhasil diatur ke: ${BOOT_DEF^^}.\nPengaturan ini akan diterapkan otomatis setiap kali boot." 8 65
+                    fi
+                    ;;
+            esac
+            ;;
+    esac
+done
