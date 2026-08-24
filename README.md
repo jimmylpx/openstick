@@ -17,6 +17,8 @@ Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **
 - **🌐 Dynamic DHCP DNS & SUID Ping**:
   - DNS resolver otomatis mengikuti nameserver dinamis yang diberikan oleh DHCP router atau modem seluler tanpa konfigurasi manual.
   - Perintah `ping` dapat dijalankan langsung oleh akun pengguna biasa (`user`) tanpa kendala permission socket.
+- **📊 Fastfetch & Hint `sbrmenu` Bawaan**:
+  - Menampilkan ringkasan informasi sistem, status CPU, RAM, kernel, dan IP lokal via `fastfetch` secara otomatis saat login SSH, lengkap dengan panduan banner interaktif untuk menjalankan `sbrmenu`.
 - **❄️ Manajemen Termal & Stabilitas**:
   - **4G LTE Nonaktif Secara Default**: Menjaga perangkat tetap dingin saat awal booting.
   - Saat 4G LTE diaktifkan, frekuensi CPU dikelola secara optimal agar suhu tetap stabil di **~53°C – 57°C**.
