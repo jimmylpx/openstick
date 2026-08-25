@@ -145,11 +145,12 @@ Anda dapat mengakses perangkat melalui 3 metode:
  # Password: 1
  ```
 - **Metode B (Kabel USB — ADB Shell)**:
- Buka CMD atau PowerShell di Windows, lalu jalankan:
- ```bash
+ Buka CMD atau PowerShell di Windows, lalu cukup jalankan:
+ ```cmd
+ adb connect 192.168.100.1:5555
  adb shell
  ```
- *(Sistem akan otomatis login sebagai `user`, menampilkan `fastfetch` dan banner petunjuk `sbrmenu`).*
+ *(Sistem akan langsung terhubung ke root shell `root@openstick:~#` secara instan tanpa prompt otorisasi kunci).*
 - **Metode C (Koneksi Wi-Fi / Hotspot)**:
  Sambungkan Wi-Fi Windows ke Hotspot bawaan (**SSID:** `4G-UFI-XX`, **Password:** `1234567890`), lalu hubungkan via SSH:
  ```bash
@@ -162,11 +163,12 @@ Anda dapat mengakses perangkat melalui 3 metode:
 ### 2. Dari Linux PC / HP / Laptop
 Anda dapat mengakses perangkat melalui 2 metode:
 - **Metode A (Kabel USB — ADB Shell Langsung)**:
- Colokkan modem ke port USB PC Linux, buka terminal, lalu jalankan:
+ Buka terminal di PC Linux Anda, lalu jalankan:
  ```bash
+ adb connect 192.168.100.1:5555
  adb shell
  ```
- *(Langsung login interaktif sebagai `user` lengkap dengan tampilan `fastfetch` dan banner `sbrmenu`).*
+ *(Atau jika menggunakan perintah helper `rndis`, cukup ketik `rndis` lalu `adb shell`).*
 - **Metode B (Koneksi Wi-Fi / Hotspot / LAN)**:
  Sambungkan PC Linux atau Smartphone Anda ke Hotspot bawaan (**SSID:** `4G-UFI-XX`, **Password:** `1234567890`) atau pastikan berada di jaringan Wi-Fi lokal yang sama:
  ```bash
