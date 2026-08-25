@@ -114,8 +114,8 @@ chmod +x installer.sh
 ./installer.sh
 ```
 
-> **Catatan Khusus Board UZ801 (Mode EDL 9008):**  
-> Jika Anda mem-flash board **UZ801** yang masuk melalui mode EDL 9008, jalankan script dengan **`sudo`** (`sudo ./installer.sh`) agar tool `edl` memiliki izin akses penuh ke raw port USB Qualcomm 9008 tanpa kendala *Permission denied*.
+> **Catatan Khusus Board UZ801 (Mode EDL via `adb reboot edl`):**  
+> Jika Anda masuk ke mode EDL 9008 melalui perintah software **`adb reboot edl`**, jalankan script installer dengan **`sudo`** (`sudo ./installer.sh`) agar tool `edl` mendapatkan izin akses penuh ke raw port USB Qualcomm 9008 dan tidak terhalang kendala *Permission denied*.
 
 Script akan secara otomatis mengeksekusi tahapan berikut:
 1. **Mendeteksi Mode EDL 9008 & Full Backup**: Melakukan backup penuh seluruh flash eMMC (`edl rf backup.bin`) dan mengekstrak partisi baseband asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) ke folder `extracted/`.
