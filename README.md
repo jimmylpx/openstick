@@ -5,7 +5,11 @@
 [![License](https://img.shields.io/badge/License-GPLv3-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/jimmylpx/openstick)](https://github.com/jimmylpx/openstick/releases/tag/v1)
 
-Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **Qualcomm Snapdragon 410 (MSM8916)** (seperti board **HMUF02-V05**, **UZ801**, **UFI103S-V05**, dan varian sejenis) dari firmware Android bawaan pabrik menjadi **perangkat server Linux murni (Debian 12 Bookworm 64-bit)** yang hemat daya, stabil, dan kaya fitur.
+Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **Qualcomm Snapdragon 410 (MSM8916)** (seperti board **HMUF02-V05**, **UZ801**, **UFI103S-V05**, dan varian sejenis) dari firmware Android bawaan pabrik menjadi **perangkat server Linux murni (Debian 64-bit)** yang hemat daya, stabil, dan kaya fitur.
+
+Tersedia 2 pilihan varian rilis:
+- **Debian 12 Bookworm (`bookworm.zip`)** — **Rekomendasi (Stabil)**: Telah teruji penuh untuk kestabilan harian, modem seluler 4G LTE, RNDIS, DNS dinamis, dan manajemen USB.
+- **Debian 13 Trixie (`trixie.zip`)** — **Eksperimental (Belum Stabil)**: Varian rilis terbaru berbasis Debian 13 Testing (paket Python 3.13, coreutils 9.7, NetworkManager 1.52). Varian ini ditujukan untuk pengujian/developer dan statusnya masih dalam tahap penyempurnaan.
 
 ---
 
@@ -123,7 +127,7 @@ Script akan secara otomatis mengeksekusi tahapan berikut:
 1. **Mendeteksi Mode EDL 9008 & Full Backup**: Melakukan backup penuh seluruh flash eMMC (`edl rf backup.bin`) dan mengekstrak partisi baseband asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) ke folder `extracted/`.
 2. **Direct Fastboot Jump (Tanpa ADB)**: Menulis bootloader aboot, mengosongkan partisi boot, dan mengeksekusi `edl reset` untuk langsung melompat ke mode Fastboot dalam ~3 detik.
 3. **Flashing Base Generic**: Mem-flash partisi dasar dan partition table dari folder `base/`.
-4. **Download & Flash Langsung Debian 12 Bookworm**: Mengunduh `bookworm.zip` dan mem-flash firmware Debian 12 Bookworm kustom lengkap.
+4. **Download & Flash Firmware**: Mengunduh `bookworm.zip` (Stabil) atau `trixie.zip` (Eksperimental) dan mem-flash firmware Debian kustom lengkap.
 5. **Restore Baseband Modem**: Mengembalikan seluruh partisi asli dari folder `extracted/`.
 6. **Reboot ke Linux**: Me-reboot perangkat ke sistem operasi Debian Linux baru.
 
