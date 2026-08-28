@@ -23,14 +23,7 @@ fi
 # Helper untuk mendeteksi file USB role
 get_usb_role_file() {
     [ ! -d /sys/kernel/debug ] && mount -t debugfs none /sys/kernel/debug 2>/dev/null
-    for f in \
-        /sys/class/usb_role/ci_hdrc.0-role-switch/role \
-        /sys/devices/platform/soc@0/78d9000.usb/ci_hdrc.0/role \
-        /sys/devices/platform/soc/78d9000.usb/ci_hdrc.0/role \
-        /sys/class/usb_role/ci_hdrc.0/role \
-        /sys/class/usb_role/ci_hdrc.0-role/role \
-        /sys/kernel/debug/usb/ci_hdrc.0/role \
-        /sys/kernel/debug/ci_hdrc.0/role; do
+    for f in /sys/class/usb_role/ci_hdrc.0-role-switch/role /sys/devices/platform/soc@0/78d9000.usb/ci_hdrc.0/role /sys/kernel/debug/ci_hdrc.0/role; do
         if [ -f "$f" ]; then
             echo "$f"
             return 0
@@ -42,16 +35,9 @@ get_usb_role_file() {
 get_current_usb_role() {
     local rf=$(get_usb_role_file)
     if [ -n "$rf" ] && [ -f "$rf" ]; then
-        local r=$(cat "$rf" 2>/dev/null | tr -d ' \t\n\r')
-        if [ "$r" = "device" ]; then
-            echo "gadget (device)"
-        elif [ "$r" = "host" ]; then
-            echo "host (OTG)"
-        else
-            echo "$r"
-        fi
+        cat "$rf" 2>/dev/null | tr -d ' \t\n\r'
     else
-        if systemctl is-active --quiet usb-gadget-rndis.service 2>/dev/null || [ -d /sys/kernel/config/usb_gadget/g1 ]; then
+        if systemctl is-active --quiet msm8916-usb-gadget.service 2>/dev/null; then
             echo "gadget"
         else
             echo "unknown"
@@ -689,23 +675,22 @@ INNER_EOF
             case $USB_CHOICE in
                 "1")
                     {
-                        echo -e "XXX\n30\nMengaktifkan role Gadget (device)...\nXXX"
+                        echo -e "XXX\n30\nMengaktifkan role Gadget...\nXXX"
                         if [ -n "$ROLE_FILE" ]; then
                             echo device > "$ROLE_FILE" 2>/dev/null || echo gadget > "$ROLE_FILE" 2>/dev/null || true
                         fi
                         sleep 1
-                        echo -e "XXX\n70\nMemulai service usb-gadget-rndis...\nXXX"
-                        systemctl restart usb-gadget-rndis.service >/dev/null 2>&1 || true
-                        /usr/sbin/usb-gadget-rndis >/dev/null 2>&1 || true
+                        echo -e "XXX\n70\nMemulai service msm8916-usb-gadget...\nXXX"
+                        systemctl restart usb-gadget-rndis.service >/dev/null 2>&1 || /usr/sbin/usb-gadget-rndis >/dev/null 2>&1 || true
                         echo -e "XXX\n100\nSelesai!\nXXX"
                         sleep 1
                     } | whiptail --title "USB Gadget Mode" --gauge "Mengalihkan ke Mode Gadget..." 8 60 0
-                    whiptail --title "Sukses" --msgbox "Perangkat berhasil dialihkan ke Mode Gadget (RNDIS / USB Dongle)!" 8 65
+                    whiptail --title "Sukses" --msgbox "Perangkat berhasil dialihkan ke Mode Gadget (RNDIS / ACM Serial / UMS)!" 8 65
                     ;;
                 "2")
                     {
                         echo -e "XXX\n30\nMenonaktifkan service USB Gadget...\nXXX"
-                        systemctl stop usb-gadget-rndis.service >/dev/null 2>&1 || true
+                        systemctl stop msm8916-usb-gadget.service >/dev/null 2>&1 || true
                         sleep 1
                         echo -e "XXX\n70\nMengaktifkan role Host OTG...\nXXX"
                         if [ -n "$ROLE_FILE" ]; then
