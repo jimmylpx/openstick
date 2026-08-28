@@ -25,6 +25,8 @@ Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **
 - **Pengatur Mode USB (Host OTG / Gadget)**:
  - **Gadget Mode (Default)**: Untuk dicolokkan ke Windows PC (RNDIS USB Ethernet).
  - **Host Mode (OTG)**: Untuk membaca Flashdisk, USB Hub, USB Ethernet, atau Keyboard.
+- **Fungsi USB Wi-Fi Adapter / Dongle**:
+ - Saat OpenStick terhubung ke Wi-Fi (mode Wi-Fi Client via `sbrmenu`) dan dicolokkan ke PC Windows/Linux lewat port USB, koneksi internet otomatis disalurkan ke komputer host melalui jalur USB RNDIS. Perangkat otomatis bertindak sebagai USB Wi-Fi Dongle plug-and-play.
 - **DNSCrypt-Proxy (Cloudflare DoH)**:
  - Tersedia opsi DNS over HTTPS (DoH) terenkripsi via Cloudflare pada `127.0.0.1:5353`.
 - **`sbrmenu` — TUI Network & Hardware Manager**:
