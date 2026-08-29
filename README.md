@@ -206,3 +206,13 @@ Setelah login ke terminal SSH modem, jalankan menu TUI interaktif:
 sbrmenu
 ```
 Ketik nomor menu untuk mengonfigurasi Hotspot, WiFi Client, 4G LTE, SMS Modem, DNSCrypt, Pi-hole, atau USB Mode sesuai kebutuhan.
+
+---
+
+## Build Your Own (Membangun Firmware Sendiri)
+
+Jika Anda ingin menambahkan paket kustom, mengedit layanan, memodifikasi kernel/overlay, atau membangun versi firmware Debian Anda sendiri, silakan kunjungi direktori source code dan build system proyek ini:
+
+👉 **[Build Your Own Firmware (Source Code & Build Guide)](https://github.com/jimmylpx/openstick/tree/main/sourcecode)**
+
+Di dalamnya telah disediakan script otomatis `build.sh`, konfigurasi paket `packages.list`, dan template overlay filesystem untuk membangun rilis Bookworm maupun Trixie secara mandiri.
