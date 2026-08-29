@@ -1,0 +1,75 @@
+#!/bin/bash
+# USB Gadget RNDIS & MSFT100 OS Descriptors for OpenStick (MSM8916)
+set -e
+
+# Load modules
+modprobe libcomposite 2>/dev/null || true
+modprobe usb_f_rndis 2>/dev/null || true
+modprobe u_ether 2>/dev/null || true
+
+# Switch to device mode
+echo device > /sys/class/usb_role/ci_hdrc.0-role-switch/role 2>/dev/null || \
+echo device > /sys/devices/platform/soc@0/78d9000.usb/ci_hdrc.0/role 2>/dev/null || true
+
+# Mount configfs
+if ! mountpoint -q /sys/kernel/config; then
+    mkdir -p /sys/kernel/config
+    mount -t configfs none /sys/kernel/config 2>/dev/null || true
+fi
+
+GADGET_DIR="/sys/kernel/config/usb_gadget/g1"
+
+if [ -d "$GADGET_DIR" ]; then
+    echo "" > "$GADGET_DIR/UDC" 2>/dev/null || true
+    rm -f $GADGET_DIR/configs/c.1/* 2>/dev/null || true
+    rm -f $GADGET_DIR/os_desc/c.1 2>/dev/null || true
+    rmdir $GADGET_DIR/configs/c.1/strings/0x409 2>/dev/null || true
+    rmdir $GADGET_DIR/configs/c.1 2>/dev/null || true
+    rmdir $GADGET_DIR/functions/* 2>/dev/null || true
+    rmdir $GADGET_DIR/strings/0x409 2>/dev/null || true
+    cd /sys/kernel/config/usb_gadget
+    rmdir "$GADGET_DIR" 2>/dev/null || true
+fi
+
+mkdir -p "$GADGET_DIR"
+cd "$GADGET_DIR"
+
+echo "0x1d6b" > idVendor
+echo "0x0104" > idProduct
+echo "0x0100" > bcdDevice
+echo "0xEF" > bDeviceClass
+echo "0x02" > bDeviceSubClass
+echo "0x01" > bDeviceProtocol
+
+mkdir -p strings/0x409
+echo "0123456789" > strings/0x409/serialnumber
+echo "OpenStick" > strings/0x409/manufacturer
+echo "MSM8916 RNDIS USB" > strings/0x409/product
+
+mkdir -p functions/rndis.usb0
+echo "2a:85:da:41:eb:f9" > functions/rndis.usb0/host_addr
+echo "8a:b1:27:16:8e:a7" > functions/rndis.usb0/dev_addr
+
+mkdir -p configs/c.1/strings/0x409
+echo "0x80" > configs/c.1/bmAttributes
+echo "500" > configs/c.1/MaxPower
+echo "RNDIS" > configs/c.1/strings/0x409/configuration
+
+# Windows OS Descriptors
+echo 1 > os_desc/use
+echo 0xcd > os_desc/b_vendor_code
+echo MSFT100 > os_desc/qw_sign
+echo RNDIS > functions/rndis.usb0/os_desc/interface.rndis/compatible_id
+echo 5162001 > functions/rndis.usb0/os_desc/interface.rndis/sub_compatible_id
+
+ln -sf functions/rndis.usb0 configs/c.1/
+ln -sf configs/c.1 os_desc/
+
+echo "ci_hdrc.0" > UDC 2>/dev/null || true
+
+# Add to bridge
+sleep 1
+if ip link show usb0 >/dev/null 2>&1; then
+    ip link set dev usb0 up 2>/dev/null || true
+    ip link set dev usb0 master br0 2>/dev/null || true
+fi
