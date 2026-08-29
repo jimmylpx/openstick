@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenStick USB RNDIS Gadget Initializer
+After=systemd-modules-load.service
+Before=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/usb-gadget-rndis
+
+[Install]
+WantedBy=multi-user.target
