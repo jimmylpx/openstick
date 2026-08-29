@@ -133,13 +133,7 @@ Script akan secara otomatis mengeksekusi tahapan berikut:
 
 ---
 
-### 4. Penting Setelah Flashing Selesai (Re-Plug Perangkat)
-Setelah proses flashing pada `installer.sh` selesai, perangkat biasanya akan berada dalam kondisi **unresponsive / diam**.
 
-> **Wajib Dilakukan:** 
-> **Cabut modem dari port USB komputer, kemudian colokkan kembali secara normal** (tanpa menekan tombol atau men-short pin) agar modem dapat melakukan cold boot dan melanjutkan proses booting ke Debian Linux!
-
----
 
 ## Cara Mengakses Perangkat Setelah Instalasi
 
