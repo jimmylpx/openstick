@@ -117,20 +117,49 @@ print(f'[*] Selesai mengekstrak {extracted_count} partisi asli.')
 }
 
 # ==============================================================================
-# [TAHAP 1/4] DETEKSI EDL 9008 -> FULL BACKUP -> DIRECT FASTBOOT JUMP
+# [TAHAP 1/4] DETEKSI STATUS MODEM & MANAJEMEN BACKUP
 # ==============================================================================
-echo -e "\033[1;33m>>> [TAHAP 1/4] Menunggu modem dalam mode EDL (Qualcomm 9008)...\033[0m"
+echo -e "\033[1;33m>>> [TAHAP 1/4] Memeriksa status koneksi perangkat (EDL 9008 / Fastboot)...\033[0m"
 
 REQUIRED_PARTS=("fsc" "fsg" "modem" "modemst1" "modemst2" "persist" "sec")
 
-if ! fastboot devices 2>/dev/null | grep -qE "[a-zA-Z0-9]+\s+fastboot"; then
-    echo "Silakan hubungkan modem Snapdragon 410 Anda dalam mode EDL (Qualcomm 9008)."
+if fastboot devices 2>/dev/null | grep -qE "[a-zA-Z0-9]+\s+fastboot"; then
+    echo "[OK] Perangkat sudah berada dalam mode Fastboot!"
+    
+    # Cek apakah partisi di extracted/ sudah lengkap
+    MISSING_EXTRACTED=false
+    for p in "${REQUIRED_PARTS[@]}"; do
+        if [ ! -f "${EXTRACTED_DIR}/${p}.bin" ]; then
+            MISSING_EXTRACTED=true
+            break
+        fi
+    done
+
+    if [ "$MISSING_EXTRACTED" = true ]; then
+        EXISTING_BACKUP=$(ls -t "${ROOT_DIR}"/backup*.bin "${EXTRACTED_DIR}"/backup*.bin 2>/dev/null | head -n 1)
+        if [ -n "$EXISTING_BACKUP" ] && [ -f "$EXISTING_BACKUP" ]; then
+            echo ""
+            echo "[!] Ditemukan file backup: $(basename "${EXISTING_BACKUP}")"
+            read -r -p "Apakah file ini adalah backup dari perangkat saat ini? (y/n, default: y): " USE_EXISTING
+            USE_EXISTING=${USE_EXISTING:-y}
+            if [[ "$USE_EXISTING" =~ ^[Yy]$ ]]; then
+                echo "[OK] Mengekstrak partisi asli dari $(basename "${EXISTING_BACKUP}")..."
+                extract_gpt_partitions "${EXISTING_BACKUP}" "${EXTRACTED_DIR}"
+            fi
+        fi
+    else
+        echo "[OK] Seluruh partisi backup asli di folder extracted/ sudah lengkap dan siap."
+    fi
+    echo "[OK] Menyesuaikan alur: langsung melanjutkan proses download & flashing firmware..."
+
+else
+    echo "Silakan hubungkan modem Snapdragon 410 Anda dalam mode EDL (Qualcomm 9008) atau Fastboot."
     while true; do
         if lsusb 2>/dev/null | grep -qi "05c6:9008" || [ -e /dev/ttyUSB0 ]; then
             echo "[OK] Port EDL Qualcomm 9008 terdeteksi!"
             break
         elif fastboot devices 2>/dev/null | grep -qE "[a-zA-Z0-9]+\s+fastboot"; then
-            echo "[OK] Perangkat sudah berada dalam mode Fastboot!"
+            echo "[OK] Perangkat terdeteksi di mode Fastboot!"
             break
         else
             echo -n "."
