@@ -164,15 +164,14 @@ fi
 if [ "$FASTBOOT_READY_WITH_BACKUP" = false ]; then
     if fastboot devices 2>/dev/null | grep -qE "[a-zA-Z0-9]+\s+fastboot" && [ -z "$EXISTING_BACKUP" ] && [ "$HAS_ALL_EXTRACTED" = false ]; then
         echo ""
-        echo "[!] Perangkat berada di Fastboot tetapi BELUM DITEMUKAN file backup eMMC!"
-        echo "[!] Untuk mengamankan IMEI & sinyal 4G, perangkat wajib di-backup via EDL 9008."
-        echo "    -> Mengirim perintah reboot ke EDL (fastboot oem edl)..."
-        fastboot oem edl 2>/dev/null || true
-        echo "    (Jika tidak beralih otomatis, cabut modem dan tahan tombol EDL saat dicolokkan)."
+        echo "[!] Perangkat berada di mode Fastboot tetapi BELUM DITEMUKAN file backup eMMC!"
+        echo "[!] Untuk mengamankan partisi baseband (IMEI & sinyal 4G), perangkat WAJIB di-backup terlebih dahulu."
+        echo "    -> Silakan cabut modem dari port USB."
+        echo "    -> Tahan tombol fisik EDL (atau hubungkan titik test point EDL), lalu colokkan kembali ke port USB."
         echo ""
     fi
 
-    echo "Silakan hubungkan modem Snapdragon 410 Anda dalam mode EDL (Qualcomm 9008)."
+    echo "Menunggu modem dalam mode EDL (Qualcomm 9008)..."
     while true; do
         if lsusb 2>/dev/null | grep -qi "05c6:9008" || [ -e /dev/ttyUSB0 ]; then
             echo "[OK] Port EDL Qualcomm 9008 terdeteksi!"
