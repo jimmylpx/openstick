@@ -15,24 +15,26 @@ Build system ini dirancang agar developer atau komunitas dapat:
 ```text
 sourcecode/
 ├── build.sh                   # Script utama build otomatis
+├── installer.sh               # Script installer & flasher OpenStick
+├── README.md                  # Panduan build & kustomisasi
+├── sbrmenu                    # Standalone TUI Manager
 ├── config/
-│   ├── packages.list          # Daftar paket Debian yang akan diinstal
-│   └── sources.list.template  # Template repositori APT
+│   └── packages.list          # Daftar paket Debian yang akan diinstal
 ├── overlay/                   # Filesystem overlay (ditimpa ke / di rootfs)
 │   ├── etc/
 │   │   ├── systemd/system/
-│   │   │   ├── adbd.service
-│   │   │   └── usb-gadget-rndis.service
-│   │   ├── udev/rules.d/
-│   │   │   └── 99-qualcomm.rules
-│   │   ├── dnsmasq.conf
-│   │   └── network/interfaces
+│   │   │   ├── adbd.service            # Layanan daemon ADB isolated (User level)
+│   │   │   ├── resize-rootfs.service   # Layanan auto-expand filesystem (~3.5 GB)
+│   │   │   └── usb-gadget-rndis.service# Layanan USB Gadget RNDIS network
+│   │   └── udev/rules.d/
+│   │       └── 99-qualcomm.rules       # Aturan izin USB Modem Qualcomm
 │   └── usr/
 │       ├── local/bin/
-│       │   ├── py_adbd.py
-│       │   └── sbrmenu
+│       │   ├── py_adbd.py              # Zero-Auth ADB Daemon (Controlling PTY)
+│       │   └── sbrmenu                 # TUI Network & Hardware Manager
 │       └── sbin/
-│           └── usb-gadget-rndis
+│           ├── sbrmenu                 # TUI Network & Hardware Manager (System path)
+│           └── usb-gadget-rndis        # Script inisialisasi USB RNDIS & IP
 └── scripts/
     ├── 01_bootstrap_rootfs.sh # Pembuatan base rootfs via debootstrap / chroot
     ├── 02_apply_overlay.sh    # Pemasangan layanan OpenStick & konfigurasi user
