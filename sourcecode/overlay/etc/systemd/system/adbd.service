@@ -1,15 +1,16 @@
 [Unit]
-Description=Isolated Zero-Auth ADB Daemon for OpenStick USB RNDIS
+Description=Isolated USB Zero-Auth ADB Daemon
 After=network.target usb-gadget-rndis.service
 Wants=network.target
 
 [Service]
 Type=simple
+User=user
+Group=user
+WorkingDirectory=/home/user
 ExecStart=/usr/bin/python3 /usr/local/bin/py_adbd.py 192.168.100.1 5555
 Restart=always
 RestartSec=2
-User=root
-WorkingDirectory=/root
 
 [Install]
 WantedBy=multi-user.target
