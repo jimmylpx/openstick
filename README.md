@@ -16,32 +16,32 @@ Tersedia 2 pilihan varian rilis:
 ## Fitur Utama & Kustomisasi
 
 - **Direct One-Click Installer (`installer.sh`)**:
- - Alur cepat & bersih: mendeteksi EDL 9008, backup partisi modem/IMEI asli, aktivasi root ADB, reboot bootloader, flash Base Generic, dan langsung mem-flash Debian 12 Bookworm kustom tanpa tahapan perantara yang berlebih.
- - Otomatis memulihkan seluruh partisi modem asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) sehingga kartu SIM (Telkomsel, Indosat, XL, Tri, Smartfren) langsung aktif *out-of-the-box*.
+  - Alur cepat & bersih: mendeteksi EDL 9008, backup partisi modem/IMEI asli, aktivasi root ADB, reboot bootloader, flash Base Generic, dan langsung mem-flash Debian 12 Bookworm kustom tanpa tahapan perantara yang berlebih.
+  - Otomatis memulihkan seluruh partisi modem asli (`fsc`, `fsg`, `modem`, `modemst1`, `modemst2`, `persist`, `sec`) sehingga kartu SIM (Telkomsel, Indosat, XL, Tri, Smartfren) langsung aktif *out-of-the-box*.
 - **Dynamic DHCP DNS & SUID Ping**:
- - DNS resolver otomatis mengikuti nameserver dinamis yang diberikan oleh DHCP router atau modem seluler tanpa konfigurasi manual.
- - Perintah `ping` dapat dijalankan langsung oleh akun pengguna biasa (`user`) tanpa kendala permission socket.
+  - DNS resolver otomatis mengikuti nameserver dinamis yang diberikan oleh DHCP router atau modem seluler tanpa konfigurasi manual.
+  - Perintah `ping` dapat dijalankan langsung oleh akun pengguna biasa (`user`) tanpa kendala permission socket.
 - **Fastfetch & Hint `sbrmenu` Bawaan**:
- - Menampilkan ringkasan informasi sistem, status CPU, RAM, kernel, dan IP lokal via `fastfetch` secara otomatis saat login SSH, lengkap dengan panduan banner interaktif untuk menjalankan `sbrmenu`.
+  - Menampilkan ringkasan informasi sistem, status CPU, RAM, kernel, dan IP lokal via `fastfetch` secara otomatis saat login SSH, lengkap dengan panduan banner interaktif untuk menjalankan `sbrmenu`.
 - **Manajemen Termal & Stabilitas**:
- - **4G LTE Nonaktif Secara Default**: Menjaga perangkat tetap dingin saat awal booting.
- - Saat 4G LTE diaktifkan, frekuensi CPU dikelola secara optimal agar suhu tetap stabil di **~53°C – 57°C**.
+  - **4G LTE Nonaktif Secara Default**: Menjaga perangkat tetap dingin saat awal booting.
+  - Saat 4G LTE diaktifkan, frekuensi CPU dikelola secara optimal agar suhu tetap stabil di **~53°C – 57°C**.
 - **Pengatur Mode USB (Host OTG / Gadget)**:
- - **Gadget Mode (Default)**: Untuk dicolokkan ke Windows PC (RNDIS USB Ethernet).
- - **Host Mode (OTG)**: Untuk membaca Flashdisk, USB Hub, USB Ethernet, atau Keyboard.
+  - **Gadget Mode (Default)**: Untuk dicolokkan ke Windows PC (RNDIS USB Ethernet).
+  - **Host Mode (OTG)**: Untuk membaca Flashdisk, USB Hub, USB Ethernet, atau Keyboard.
 - **Fungsi USB Wi-Fi Adapter / Dongle**:
- - Saat OpenStick terhubung ke Wi-Fi (mode Wi-Fi Client via `sbrmenu`) dan dicolokkan ke PC Windows/Linux lewat port USB, koneksi internet otomatis disalurkan ke komputer host melalui jalur USB RNDIS. Perangkat otomatis bertindak sebagai USB Wi-Fi Dongle plug-and-play.
+  - Saat OpenStick terhubung ke Wi-Fi (mode Wi-Fi Client via `sbrmenu`) dan dicolokkan ke PC Windows/Linux lewat port USB, koneksi internet otomatis disalurkan ke komputer host melalui jalur USB RNDIS. Perangkat otomatis bertindak sebagai USB Wi-Fi Dongle plug-and-play.
 - **DNSCrypt-Proxy (Cloudflare DoH)**:
- - Tersedia opsi DNS over HTTPS (DoH) terenkripsi via Cloudflare pada `127.0.0.1:5353`.
+  - Tersedia opsi DNS over HTTPS (DoH) terenkripsi via Cloudflare pada `127.0.0.1:5353`.
 - **`sbrmenu` — TUI Network & Hardware Manager**:
- Menu interaktif berbasis TUI (`whiptail`) yang dapat dijalankan kapan saja dengan mengetik `sbrmenu`:
- 1. **Buat Hotspot**: Konfigurasi SSID & Password WPA2 Personal, di-bridge ke `br0`.
- 2. **Aktifkan Wi-Fi Client**: Terhubung ke Wi-Fi luar dengan proteksi *auto-fallback* ke hotspot darurat jika gagal.
- 3. **Toggle 4G LTE**: Mengaktifkan/mematikan koneksi seluler & konfigurasi APN.
- 4. **Papan Chat SMS Modem**: Membaca inbox/outbox per-kontak serta mengirim dan membalas SMS langsung dari modem.
- 5. **Aktivasi DNSCrypt-Proxy**: Mengaktifkan Cloudflare DoH terenkripsi pada `127.0.0.1:5353`.
- 6. **Installer Pi-hole**: Instalasi ad-blocker Pi-hole secara interaktif.
- 7. **Atur Mode USB**: Beralih antara mode Host OTG, Gadget, atau set default boot permanen.
+  Menu interaktif berbasis TUI (`whiptail`) yang dapat dijalankan kapan saja dengan mengetik `sbrmenu`:
+  1. **Buat Hotspot**: Konfigurasi SSID & Password WPA2 Personal, di-bridge ke `br0`.
+  2. **Aktifkan Wi-Fi Client**: Terhubung ke Wi-Fi luar dengan proteksi *auto-fallback* ke hotspot darurat jika gagal.
+  3. **Toggle 4G LTE**: Mengaktifkan/mematikan koneksi seluler & konfigurasi APN.
+  4. **Papan Chat SMS Modem**: Membaca inbox/outbox per-kontak serta mengirim dan membalas SMS langsung dari modem.
+  5. **Aktivasi DNSCrypt-Proxy**: Mengaktifkan Cloudflare DoH terenkripsi pada `127.0.0.1:5353`.
+  6. **Installer Pi-hole**: Instalasi ad-blocker Pi-hole secara interaktif.
+  7. **Atur Mode USB**: Beralih antara mode Host OTG, Gadget, atau set default boot permanen.
 
 ---
 
@@ -84,20 +84,20 @@ Untuk board UZ801, terdapat **2 cara** untuk masuk ke mode EDL:
 ![UZ801 Short Pin](img/uz801_edl.png)
 
 1. **Cara 1 (Software via Web Debug & ADB)**:
- - Hubungkan PC ke Wi-Fi modem atau colok via USB.
- - Buka browser dan akses alamat: `http://192.168.100.1/usbdebug.html` lalu tunggu hingga modem me-restart dirinya sendiri.
- - Buka terminal di PC Anda, lalu jalankan perintah:
- ```bash
- adb wait-for-device
- adb shell "setprop service.adb.root 1; busybox killall adbd"
- adb wait-for-device
- adb reboot edl
- ```
+   - Hubungkan PC ke Wi-Fi modem atau colok via USB.
+   - Buka browser dan akses alamat: `http://192.168.100.1/usbdebug.html` lalu tunggu hingga modem me-restart dirinya sendiri.
+   - Buka terminal di PC Anda, lalu jalankan perintah:
+   ```bash
+   adb wait-for-device
+   adb shell "setprop service.adb.root 1; busybox killall adbd"
+   adb wait-for-device
+   adb reboot edl
+   ```
 2. **Cara 2 (Hardware via Short Pin)**:
- - Cabut modem dari port USB.
- - Hubungkan (*short*) kedua pin test point yang berada di dalam **kotak merah** pada gambar di atas menggunakan pinset / kabel jumper.
- - Sambil menghubungkan pin tersebut, **colokkan modem ke port USB**.
- - Tunggu **~5 detik**, lalu lepaskan pinset/jumper.
+   - Cabut modem dari port USB.
+   - Hubungkan (*short*) kedua pin test point yang berada di dalam **kotak merah** pada gambar di atas menggunakan pinset / kabel jumper.
+   - Sambil menghubungkan pin tersebut, **colokkan modem ke port USB**.
+   - Tunggu **~5 detik**, lalu lepaskan pinset/jumper.
 
 > **Verifikasi Mode EDL:** 
 > Jalankan perintah `lsusb` di terminal Linux. Pastikan muncul baris: 
@@ -133,55 +133,68 @@ Script akan secara otomatis mengeksekusi tahapan berikut:
 
 ---
 
-
-
 ## Cara Mengakses Perangkat Setelah Instalasi
 
-Setelah modem dicolokkan kembali dan selesai booting (~40 detik), perangkat OpenStick dapat diakses melalui berbagai metode berikut:
+Setelah proses flashing selesai dan perangkat booting (~40 detik), OpenStick dapat diakses melalui berbagai metode berikut:
 
 ### 1. Dari Windows PC
 Anda dapat mengakses perangkat melalui 3 metode:
 - **Metode A (Kabel USB — RNDIS Ethernet / SSH)**:
- Colokkan modem ke port USB PC Windows (driver *Remote NDIS Compatible Device* akan aktif secara otomatis). Buka PowerShell / CMD / PuTTY, lalu hubungkan via SSH:
- ```bash
- ssh user@192.168.100.1
- # Password: 1
- ```
+  Colokkan modem ke port USB PC Windows (driver *Remote NDIS Compatible Device* akan aktif secara otomatis). Buka PowerShell / CMD / PuTTY, lalu hubungkan via SSH:
+  ```bash
+  ssh user@192.168.100.1
+  # Password: 1
+  ```
 - **Metode B (Kabel USB — ADB Shell)**:
- Buka CMD atau PowerShell di Windows, lalu cukup jalankan:
- ```cmd
- adb connect 192.168.100.1:5555
- adb shell
- ```
- *(Sistem akan langsung terhubung ke root shell `root@openstick:~#` secara instan tanpa prompt otorisasi kunci).*
+  Buka CMD atau PowerShell di Windows, lalu cukup jalankan:
+  ```cmd
+  adb connect 192.168.100.1:5555
+  adb shell
+  ```
 - **Metode C (Koneksi Wi-Fi / Hotspot)**:
- Sambungkan Wi-Fi Windows ke Hotspot bawaan (**SSID:** `4G-UFI-XX`, **Password:** `1234567890`), lalu hubungkan via SSH:
- ```bash
- ssh user@192.168.100.1
- # Password: 1
- ```
+  Sambungkan Wi-Fi Windows ke Hotspot bawaan (**SSID:** `4G-UFI-XX`, **Password:** `1234567890`), lalu hubungkan via SSH:
+  ```bash
+  ssh user@192.168.100.1
+  # Password: 1
+  ```
 
 ---
 
 ### 2. Dari Linux PC / HP / Laptop
-Anda dapat mengakses perangkat melalui 2 metode:
-- **Metode A (Kabel USB — ADB Shell Langsung)**:
- Buka terminal di PC Linux Anda, lalu jalankan:
- ```bash
- adb connect 192.168.100.1:5555
- adb shell
- ```
- *(Atau jika menggunakan perintah helper `rndis`, cukup ketik `rndis` lalu `adb shell`).*
-- **Metode B (Koneksi Wi-Fi / Hotspot / LAN)**:
- Sambungkan PC Linux atau Smartphone Anda ke Hotspot bawaan (**SSID:** `4G-UFI-XX`, **Password:** `1234567890`) atau pastikan berada di jaringan Wi-Fi lokal yang sama:
- ```bash
- # Jika terhubung ke Hotspot modem:
- ssh user@192.168.100.1
+Anda dapat mengakses perangkat melalui beberapa metode:
 
- # Atau jika modem terhubung ke Wi-Fi rumah:
- ssh user@<IP_LOKAL_MODEM>
- # Password: 1
- ```
+- **Metode A (Kabel USB — RNDIS Network & SSH)**:
+  Saat dicolokkan ke port USB PC Linux, aktifkan interface jaringan USB:
+  ```bash
+  # 1. Cek nama interface USB modem (contoh: usb0 atau enx*****)
+  ip a show
+
+  # 2. Aktifkan interface & minta IP DHCP
+  sudo ip link set dev <nama_interface> up
+  sudo dhclient <nama_interface>
+
+  # 3. Login ke terminal modem via SSH
+  ssh user@192.168.100.1
+  # Password: 1
+  ```
+
+- **Metode B (Kabel USB — ADB Shell Langsung)**:
+  Buka terminal di PC Linux Anda, lalu jalankan:
+  ```bash
+  adb connect 192.168.100.1:5555
+  adb shell
+  ```
+
+- **Metode C (Koneksi Wi-Fi / Hotspot / LAN)**:
+  Sambungkan PC Linux atau Smartphone Anda ke Hotspot bawaan (**SSID:** `4G-UFI-XX`, **Password:** `1234567890`) atau pastikan berada di jaringan Wi-Fi lokal yang sama:
+  ```bash
+  # Jika terhubung ke Hotspot modem:
+  ssh user@192.168.100.1
+
+  # Atau jika modem terhubung ke Wi-Fi rumah:
+  ssh user@<IP_LOKAL_MODEM>
+  # Password: 1
+  ```
 
 ---
 
@@ -210,3 +223,25 @@ Jika Anda ingin menambahkan paket kustom, mengedit layanan, memodifikasi kernel/
 👉 **[Build Your Own Firmware (Source Code & Build Guide)](https://github.com/jimmylpx/openstick/tree/main/sourcecode)**
 
 Di dalamnya telah disediakan script otomatis `build.sh`, konfigurasi paket `packages.list`, dan template overlay filesystem untuk membangun rilis Bookworm maupun Trixie secara mandiri.
+
+---
+
+## 🎖️ Credits & Acknowledgements
+
+Proyek **OpenStick Debian Linux Suite** ini terwujud berkat kontribusi, riset, dan karya luar biasa dari berbagai pihak dan komunitas open-source:
+
+- **[HandsomeHacker / OpenStick Project](https://github.com/OpenStick)**: Proyek perintis awal yang memungkinkan modem USB 4G LTE Qualcomm MSM8916 menjalankan sistem operasi GNU/Linux.
+- **[msm8916-mainline Community](https://github.com/msm8916-mainline)**: Tim pengembang kernel Linux Mainline untuk Snapdragon 410 (*Stephan Gerhold dan kontributor komunitas*), yang menyediakan kernel Linux 6.12.x mainline, device tree (DTS), driver modem BAM-DMUX, serta firmware loader modem seluler.
+- **[LongQt (longqt99)](https://github.com/longqt99)**: Pengembang dan komunitas yang menyediakan referensi berharga mengenai struktur rootfs, integrasi kernel package, serta alur build firmware Debian pada perangkat OpenStick.
+- **[Bjoern Kerler (bkerler/edl)](https://github.com/bkerler/edl)**: Tool Python Qualcomm Sahara / Firehose EDL flasher yang memungkinkan proses backup penuh eMMC dan flashing partisi via mode EDL 9008.
+- **[Debian GNU/Linux Project](https://www.debian.org/)**: Fondasi sistem operasi Debian (Bookworm & Trixie ARM64) yang stabil, aman, dan kaya ekosistem paket.
+- **[ModemManager](https://www.freedesktop.org/wiki/Software/ModemManager/) & [NetworkManager](https://networkmanager.dev/)**: Stack manajemen konektivitas jaringan seluler 4G LTE, Wi-Fi, bridge, dan USB RNDIS.
+- **[DNSCrypt-Proxy](https://github.com/DNSCrypt/dnscrypt-proxy)**: Solusi DNS over HTTPS (DoH) terenkripsi untuk privasi jaringan.
+- **[Pi-hole](https://pi-hole.net/)**: Solusi DNS sinkhole network-wide ad-blocking.
+- **[Fastfetch](https://github.com/fastfetch-cli/fastfetch)**: Tool informasi sistem neofetch-alternative yang ringan dan modern.
+
+---
+
+## 📄 Lisensi
+
+Proyek ini dirilis di bawah lisensi open-source **[GNU General Public License v3.0 (GPLv3)](LICENSE)**. Anda bebas menggunakan, memodifikasi, dan mendistribusikan kembali proyek ini sesuai ketentuan lisensi.
