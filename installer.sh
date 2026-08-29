@@ -321,7 +321,6 @@ fastboot reboot
 
 echo ""
 echo "Perangkat sedang me-reboot ke sistem ${DISTRO_TITLE}."
-echo "Wajib Dilakukan: Cabut modem dari port USB, lalu colokkan kembali secara normal (Cold Boot)."
 echo "Setelah booting selesai (~40 detik):"
 echo "  - Wi-Fi Hotspot : SSID '4G-UFI-XX' (Password: 1234567890)"
 echo "  - Windows PC    : Colokkan USB (RNDIS) -> ssh user@192.168.100.1"
