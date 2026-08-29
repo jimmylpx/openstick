@@ -34,13 +34,19 @@ get_usb_role_file() {
 
 get_current_usb_role() {
     local rf=$(get_usb_role_file)
+    local r=""
     if [ -n "$rf" ] && [ -f "$rf" ]; then
-        cat "$rf" 2>/dev/null | tr -d ' \t\n\r'
+        r=$(cat "$rf" 2>/dev/null | tr -d ' \t\n\r')
+    fi
+    if [ "$r" = "device" ] || [ "$r" = "gadget" ]; then
+        echo "gadget"
+    elif [ "$r" = "host" ]; then
+        echo "host"
     else
-        if systemctl is-active --quiet msm8916-usb-gadget.service 2>/dev/null; then
+        if systemctl is-active --quiet usb-gadget-rndis.service 2>/dev/null || systemctl is-active --quiet msm8916-usb-gadget.service 2>/dev/null; then
             echo "gadget"
         else
-            echo "unknown"
+            echo "${r:-unknown}"
         fi
     fi
 }
