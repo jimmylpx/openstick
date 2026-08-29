@@ -1,0 +1,13 @@
+[Unit]
+Description=Resize rootfs to full partition size
+DefaultDependencies=no
+After=local-fs.target
+Before=sysinit.target
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/resize2fs /dev/disk/by-partlabel/rootfs
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
