@@ -70,7 +70,7 @@ sudo pacman -S android-tools python unzip wget
 Sebelum menjalankan script instalasi, perangkat harus dimasukkan ke mode **Qualcomm EDL (Emergency Download Mode 9008)**. Pilih metode sesuai dengan tipe board modem Anda:
 
 #### Opsi A: Board HMUF02-V05 / UFI103S-V05 (Tombol EDL)
-![Tombol EDL Mode](edl_button.jpg)
+![Tombol EDL Mode](img/img/edl_button.jpg)
 1. Cabut dongle USB modem dari komputer.
 2. **Tekan dan tahan tombol kecil pada board** (lihat lingkaran merah pada gambar di atas).
 3. Sambil tetap menahan tombol tersebut, **colokkan modem ke port USB komputer**.
@@ -81,7 +81,7 @@ Sebelum menjalankan script instalasi, perangkat harus dimasukkan ke mode **Qualc
 #### Opsi B: Board UZ801
 Untuk board UZ801, terdapat **2 cara** untuk masuk ke mode EDL:
 
-![UZ801 Short Pin](uz801_edl.png)
+![UZ801 Short Pin](img/img/uz801_edl.png)
 
 1. **Cara 1 (Software via Web Debug & ADB)**:
  - Hubungkan PC ke Wi-Fi modem atau colok via USB.
