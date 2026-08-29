@@ -17,7 +17,6 @@ sourcecode/
 ├── build.sh                   # Script utama build otomatis
 ├── installer.sh               # Script installer & flasher OpenStick
 ├── README.md                  # Panduan build & kustomisasi
-├── sbrmenu                    # Standalone TUI Manager
 ├── config/
 │   └── packages.list          # Daftar paket Debian yang akan diinstal
 ├── overlay/                   # Filesystem overlay (ditimpa ke / di rootfs)
@@ -31,9 +30,8 @@ sourcecode/
 │   └── usr/
 │       ├── local/bin/
 │       │   ├── py_adbd.py              # Zero-Auth ADB Daemon (Controlling PTY)
-│       │   └── sbrmenu                 # TUI Network & Hardware Manager
+│       │   └── sbrmenu                 # TUI Network & Hardware Manager (Default path)
 │       └── sbin/
-│           ├── sbrmenu                 # TUI Network & Hardware Manager (System path)
 │           └── usb-gadget-rndis        # Script inisialisasi USB RNDIS & IP
 └── scripts/
     ├── 01_bootstrap_rootfs.sh # Pembuatan base rootfs via debootstrap / chroot
@@ -50,8 +48,7 @@ Disarankan menggunakan OS **Debian / Ubuntu / Raspberry Pi OS (Linux x86_64 atau
 
 ```bash
 sudo apt update
-sudo apt install -y debootstrap qemu-user-static binfmt-support \
-  e2fsprogs zip unzip wget curl rsync abootimg parted python3
+sudo apt install -y debootstrap qemu-user-static binfmt-support   e2fsprogs zip unzip wget curl rsync abootimg parted python3
 ```
 
 ---
