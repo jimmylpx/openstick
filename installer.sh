@@ -140,17 +140,24 @@ if ! fastboot devices 2>/dev/null | grep -qE "[a-zA-Z0-9]+\s+fastboot"; then
 
     # Jika perangkat terdeteksi di mode EDL (9008)
     if lsusb 2>/dev/null | grep -qi "05c6:9008" || [ -e /dev/ttyUSB0 ]; then
-        FULL_BACKUP_PATH="${ROOT_DIR}/backup.bin"
-        if [ ! -f "${FULL_BACKUP_PATH}" ] && [ ! -f "${EXTRACTED_DIR}/backup.bin" ]; then
-            echo "[*] Melakukan FULL RAW DUMP seluruh eMMC flash via edl (backup.bin)..."
+        BACKUP_TIMESTAMP=$(date +"%Y_%m_%d_%H_%M")
+        BACKUP_NAME="backup_${BACKUP_TIMESTAMP}.bin"
+        FULL_BACKUP_PATH="${ROOT_DIR}/${BACKUP_NAME}"
+        
+        # Cek apakah sudah ada file backup sebelumnya
+        EXISTING_BACKUP=$(ls -t "${ROOT_DIR}"/backup*.bin "${EXTRACTED_DIR}"/backup*.bin 2>/dev/null | head -n 1)
+
+        if [ -n "$EXISTING_BACKUP" ] && [ -f "$EXISTING_BACKUP" ]; then
+            echo "[*] Ditemukan file backup sebelumnya: ${EXISTING_BACKUP}"
+            FULL_BACKUP_PATH="${EXISTING_BACKUP}"
+        else
+            echo "[*] Melakukan FULL RAW DUMP seluruh eMMC flash via edl -> ${BACKUP_NAME}..."
             edl rf "${FULL_BACKUP_PATH}" 2>/dev/null || true
         fi
 
-        # Ekstrak partisi
+        # Ekstrak partisi asli
         if [ -f "${FULL_BACKUP_PATH}" ]; then
             extract_gpt_partitions "${FULL_BACKUP_PATH}" "${EXTRACTED_DIR}"
-        elif [ -f "${EXTRACTED_DIR}/backup.bin" ]; then
-            extract_gpt_partitions "${EXTRACTED_DIR}/backup.bin" "${EXTRACTED_DIR}"
         else
             echo "[*] Mencadangkan partisi individual via edl..."
             for p in "${REQUIRED_PARTS[@]}"; do
