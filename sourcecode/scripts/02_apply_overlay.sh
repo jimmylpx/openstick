@@ -25,26 +25,23 @@ cat << 'CHROOT_TWEAKS' > "${TARGET_ROOTFS}/tmp/tweaks.sh"
 export DEBIAN_FRONTEND=noninteractive
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# 1. Konfigurasi Hostname
+# 1. Konfigurasi Hostname & Hosts
 echo "openstick" > /etc/hostname
 echo "127.0.0.1 localhost openstick" > /etc/hosts
 
 # 2. Buat Akun User default (user:1) & Root (root:1)
 echo "root:1" | chpasswd
 if ! id -u user >/dev/null 2>&1; then
-    useradd -m -s /bin/bash -G sudo,dialout,plugdev,netdev,audio,video user
+    useradd -m -s /bin/bash -G sudo,dialout,plugdev,netdev,audio,video,users user
     echo "user:1" | chpasswd
 fi
-
-# Sudoers tanpa password untuk user
-echo "user ALL=(ALL:ALL) ALL" > /etc/sudoers.d/010_user-nopasswd
-chmod 440 /etc/sudoers.d/010_user-nopasswd
 
 # 3. Aktifkan Services
 systemctl enable adbd.service 2>/dev/null || true
 systemctl enable usb-gadget-rndis.service 2>/dev/null || true
 systemctl enable NetworkManager.service 2>/dev/null || true
 systemctl enable ssh.service 2>/dev/null || true
+systemctl enable resize-rootfs.service 2>/dev/null || true
 
 # 4. SUID Ping (memungkinkan user biasa mengeksekusi ping)
 chmod u+s /bin/ping 2>/dev/null || chmod u+s /usr/bin/ping 2>/dev/null || true
@@ -53,6 +50,10 @@ chmod u+s /bin/ping 2>/dev/null || chmod u+s /usr/bin/ping 2>/dev/null || true
 chmod +x /usr/local/bin/py_adbd.py
 chmod +x /usr/local/bin/sbrmenu
 chmod +x /usr/sbin/usb-gadget-rndis
+
+# 6. Kosongkan machine-id agar firstboot trigger berjalan normal
+echo -n "" > /etc/machine-id
+rm -f /var/lib/dbus/machine-id
 CHROOT_TWEAKS
 
 chmod +x "${TARGET_ROOTFS}/tmp/tweaks.sh"
