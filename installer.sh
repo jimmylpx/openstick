@@ -146,11 +146,24 @@ if ! fastboot devices 2>/dev/null | grep -qE "[a-zA-Z0-9]+\s+fastboot"; then
         
         # Cek apakah sudah ada file backup sebelumnya
         EXISTING_BACKUP=$(ls -t "${ROOT_DIR}"/backup*.bin "${EXTRACTED_DIR}"/backup*.bin 2>/dev/null | head -n 1)
+        SKIP_BACKUP=false
 
         if [ -n "$EXISTING_BACKUP" ] && [ -f "$EXISTING_BACKUP" ]; then
-            echo "[*] Ditemukan file backup sebelumnya: ${EXISTING_BACKUP}"
-            FULL_BACKUP_PATH="${EXISTING_BACKUP}"
-        else
+            echo ""
+            echo "[!] Ditemukan file backup sebelumnya: $(basename "${EXISTING_BACKUP}")"
+            read -r -p "Apakah file ini adalah backup dari perangkat saat ini? (y/n, default: y): " USE_EXISTING
+            USE_EXISTING=${USE_EXISTING:-y}
+
+            if [[ "$USE_EXISTING" =~ ^[Yy]$ ]]; then
+                echo "[OK] Menggunakan file backup yang ada. Proses dump EDL dilewati (skip backup)..."
+                FULL_BACKUP_PATH="${EXISTING_BACKUP}"
+                SKIP_BACKUP=true
+            else
+                echo "[*] Menyiapkan dump file backup baru..."
+            fi
+        fi
+
+        if [ "$SKIP_BACKUP" = false ]; then
             echo "[*] Melakukan FULL RAW DUMP seluruh eMMC flash via edl -> ${BACKUP_NAME}..."
             edl rf "${FULL_BACKUP_PATH}" 2>/dev/null || true
         fi
