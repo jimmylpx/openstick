@@ -1,13 +1,825 @@
-# OpenStick Snapdragon 410 (MSM8916) - Debian Linux Suite
+# OpenStick Snapdragon 410 (MSM8916) — Debian Linux Suite
 
-[![Linux](https://img.shields.io/badge/OS-Debian%2012%20ARM64-red.svg)](https://www.debian.org/)
-[![Kernel](https://img.shields.io/badge/Kernel-Linux%206.12.x--msm8916-blue.svg)](https://github.com/msm8916-mainline)
-[![License](https://img.shields.io/badge/License-GPLv3-green.svg)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/jimmylpx/openstick)](https://github.com/jimmylpx/openstick/releases/tag/v1)
+![Linux](https://img.shields.io/badge/OS-Debian%2012%20ARM64-red.svg)
+![Kernel](https://img.shields.io/badge/Kernel-Linux%206.12.x--msm8916-blue.svg)
+![License](https://img.shields.io/badge/License-GPLv3-green.svg)
+![Release](https://img.shields.io/github/v/release/jimmylpx/openstick)
 
-Proyek ini bertujuan untuk mengubah dongle USB Modem 4G LTE berbasis prosesor **Qualcomm Snapdragon 410 (MSM8916)** (seperti board **HMUF02-V05**, **UZ801**, **UFI103S-V05**, dan varian sejenis) dari firmware Android bawaan pabrik menjadi **perangkat server Linux murni (Debian 64-bit)** yang hemat daya, stabil, dan kaya fitur.
+OpenStick adalah dongle modem 4G LTE berbasis **Qualcomm Snapdragon 410 (MSM8916)** yang bisa diubah menjadi komputer Linux kecil dengan konsumsi daya rendah.
 
-Tersedia 2 pilihan varian rilis:
+Proyek ini ditujukan untuk board seperti **HMUF02-V05, UZ801, UFI103S-V05**, dan beberapa varian OpenStick lain yang menggunakan platform MSM8916.
+
+Alih-alih menjalankan firmware Android bawaan, perangkat dapat menjalankan **Debian ARM64** dan digunakan untuk berbagai kebutuhan: server kecil, modem 4G, USB network adapter, Wi-Fi client, hotspot, DNS server, Pi-hole, dan masih banyak lagi.
+
+> **Catatan:** Proses flashing menyentuh partisi internal perangkat. Pastikan Anda memahami langkah-langkahnya dan selalu simpan backup sebelum melakukan perubahan.
+
+---
+
+## Rilis yang tersedia
+
+Saat ini tersedia dua pilihan firmware:
+
+| Firmware | Status | Cocok untuk |
+|---|---|---|
+| **Debian 12 Bookworm** | ⭐ Stabil / direkomendasikan | Pemakaian harian dan server |
+| **Debian 13 Trixie** | 🧪 Eksperimental | Pengujian dan development |
+
+**Bookworm** adalah pilihan yang paling aman jika Anda ingin OpenStick langsung dipakai sebagai server.
+
+**Trixie** menggunakan basis Debian 13 Testing dan ditujukan untuk pengguna yang ingin mencoba paket serta komponen yang lebih baru.
+
+---
+
+## Apa yang bisa dilakukan OpenStick?
+
+Beberapa fitur yang sudah tersedia di firmware ini:
+
+- Instalasi Debian secara otomatis menggunakan `installer.sh`
+- Backup eMMC dan partisi modem sebelum flashing
+- Restore partisi modem asli setelah instalasi
+- Dukungan modem 4G LTE
+- USB RNDIS untuk koneksi jaringan melalui kabel USB
+- Mode USB Gadget dan USB Host / OTG
+- Wi-Fi Client
+- Wi-Fi Hotspot
+- SMS melalui modem
+- DNSCrypt-Proxy dengan Cloudflare DoH
+- Pi-hole
+- Fastfetch
+- Menu konfigurasi interaktif `sbrmenu`
+- Pengaturan APN
+- Manajemen termal CPU
+- Akses SSH dan ADB
+
+### `sbrmenu`
+
+Sebagian besar fungsi jaringan dan hardware bisa diatur dari satu menu:
+
+```bash
+sbrmenu
+```
+
+Menu ini menggunakan `whiptail`, jadi Anda tidak perlu mengingat banyak perintah untuk melakukan konfigurasi dasar.
+
+Dari sini Anda bisa:
+
+1. Membuat hotspot Wi-Fi
+2. Menghubungkan OpenStick ke Wi-Fi lain sebagai client
+3. Mengaktifkan atau menonaktifkan 4G LTE
+4. Mengatur APN
+5. Membaca dan mengirim SMS
+6. Mengaktifkan DNSCrypt-Proxy
+7. Memasang Pi-hole
+8. Mengubah mode USB
+9. Mengatur mode USB default saat boot
+
+---
+
+## Mode USB
+
+OpenStick dapat digunakan dalam dua mode utama.
+
+### Gadget Mode
+
+Ini adalah mode default.
+
+Saat OpenStick dicolokkan ke komputer, komputer akan melihatnya sebagai perangkat jaringan USB menggunakan **RNDIS**.
+
+Contohnya:
+
+```text
+OpenStick
+    │
+    └── USB
+         │
+         ▼
+      Windows/Linux
+         │
+         └── USB Ethernet (RNDIS)
+```
+
+Mode ini cocok jika Anda ingin menggunakan OpenStick sebagai modem, router kecil, atau network device yang dikendalikan melalui USB.
+
+### Host / OTG Mode
+
+Dalam mode Host, OpenStick dapat digunakan untuk mengakses perangkat USB seperti:
+
+- Flashdisk
+- USB Hub
+- USB Ethernet
+- Keyboard
+- Perangkat USB lainnya
+
+---
+
+## OpenStick sebagai USB Wi-Fi Adapter
+
+Salah satu penggunaan yang menarik adalah menjadikan OpenStick sebagai USB Wi-Fi adapter.
+
+Jika OpenStick terhubung ke jaringan Wi-Fi sebagai **Wi-Fi Client**, kemudian dicolokkan ke PC melalui USB, koneksi Wi-Fi tersebut dapat diteruskan ke PC melalui RNDIS.
+
+Secara sederhana:
+
+```text
+Wi-Fi Router
+     │
+     │ Wi-Fi
+     ▼
+  OpenStick
+     │
+     │ USB / RNDIS
+     ▼
+ Windows / Linux PC
+```
+
+PC cukup melihat OpenStick sebagai koneksi Ethernet USB.
+
+---
+
+## DNSCrypt-Proxy
+
+Firmware menyediakan opsi **DNSCrypt-Proxy** untuk mengenkripsi permintaan DNS menggunakan DNS over HTTPS.
+
+Endpoint lokal yang digunakan:
+
+```text
+127.0.0.1:5353
+```
+
+Fitur ini dapat diaktifkan melalui:
+
+```bash
+sbrmenu
+```
+
+---
+
+# Persyaratan
+
+Anda membutuhkan komputer Linux untuk melakukan flashing.
+
+Sistem yang dapat digunakan antara lain:
+
+- Debian
+- Ubuntu
+- Raspberry Pi OS
+- WSL2
+- Distribusi Linux lain yang memiliki tool yang dibutuhkan
+
+Pastikan perangkat tersebut memiliki:
+
+- USB port
+- akses `sudo`
+- koneksi internet
+- kabel USB yang mendukung data
+
+---
+
+## Install tools — Debian / Ubuntu / Raspberry Pi OS
+
+```bash
+sudo apt update
+sudo apt install -y adb fastboot python3 python3-pip unzip wget
+```
+
+Kemudian install `edl`:
+
+```bash
+pip3 install edl
+```
+
+Atau gunakan versi dari repository:
+
+```text
+https://github.com/bkerler/edl
+```
+
+---
+
+## Arch Linux
+
+```bash
+sudo pacman -S android-tools python unzip wget
+```
+
+Untuk `edl`:
+
+```bash
+yay -S edl-git
+```
+
+---
+
+# Instalasi
+
+Proses instalasi terdiri dari tiga bagian utama:
+
+1. Masuk ke Qualcomm EDL 9008
+2. Menyiapkan paket flasher
+3. Menjalankan installer
+
+Sebelum mulai, pastikan Anda sudah mengetahui tipe board OpenStick yang digunakan.
+
+---
+
+## 1. Masuk ke EDL 9008
+
+OpenStick harus berada dalam mode:
+
+```text
+Qualcomm EDL / Emergency Download Mode
+USB ID: 05c6:9008
+```
+
+Cara masuk ke EDL berbeda-beda tergantung board.
+
+### HMUF02-V05 / UFI103S-V05
+
+Board tertentu memiliki tombol EDL.
+
+1. Cabut OpenStick dari komputer.
+2. Tekan dan tahan tombol EDL pada board.
+3. Sambil menahan tombol, colokkan OpenStick ke USB.
+4. Tunggu sekitar 5 detik.
+5. Lepaskan tombol.
+
+![EDL Button](img/edl_button.jpg)
+
+---
+
+## UZ801
+
+UZ801 menyediakan dua cara untuk masuk ke EDL.
+
+### Cara 1 — Software melalui ADB
+
+Hubungkan PC ke OpenStick melalui Wi-Fi atau USB.
+
+Buka:
+
+```text
+http://192.168.100.1/usbdebug.html
+```
+
+Tunggu sampai perangkat melakukan restart.
+
+Kemudian jalankan:
+
+```bash
+adb wait-for-device
+adb shell "setprop service.adb.root 1; busybox killall adbd"
+adb wait-for-device
+adb reboot edl
+```
+
+### Cara 2 — Hardware / Short Pin
+
+1. Cabut OpenStick.
+2. Hubungkan dua test point EDL menggunakan pinset atau jumper.
+3. Sambil tetap menghubungkan kedua pin, colokkan OpenStick ke USB.
+4. Tunggu sekitar 5 detik.
+5. Lepaskan pinset/jumper.
+
+![UZ801 EDL](img/uz801_edl.png)
+
+> **Peringatan:** Short pin dilakukan langsung pada hardware. Pastikan Anda sudah mengetahui test point yang benar untuk board Anda. Jangan melakukan short pada pin yang salah.
+
+---
+
+## Cek apakah sudah masuk EDL
+
+Di Linux, jalankan:
+
+```bash
+lsusb
+```
+
+Jika berhasil, Anda akan melihat perangkat Qualcomm dengan USB ID:
+
+```text
+05c6:9008 Qualcomm, Inc. Gobi Wireless Modem (QDL mode)
+```
+
+Jika perangkat belum muncul sebagai `05c6:9008`, **jangan lanjut ke proses flashing**.
+
+---
+
+# 2. Download Base Flasher
+
+Download paket base:
+
+```bash
+wget https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip
+```
+
+Extract:
+
+```bash
+unzip base-generic.zip -d base
+```
+
+Masuk ke folder:
+
+```bash
+cd base
+```
+
+Buat installer menjadi executable:
+
+```bash
+chmod +x installer.sh
+```
+
+---
+
+# 3. Jalankan Installer
+
+Jalankan:
+
+```bash
+./installer.sh
+```
+
+Untuk UZ801 yang masuk EDL menggunakan:
+
+```bash
+adb reboot edl
+```
+
+disarankan menjalankan installer dengan `sudo`:
+
+```bash
+sudo ./installer.sh
+```
+
+Hal ini diperlukan pada beberapa sistem agar `edl` mendapatkan akses penuh ke USB Qualcomm EDL.
+
+---
+
+## Apa yang dilakukan installer?
+
+Installer dirancang untuk mengurangi jumlah langkah manual.
+
+Secara umum prosesnya adalah:
+
+### 1. Mendeteksi EDL
+
+Installer memastikan OpenStick terdeteksi sebagai Qualcomm EDL 9008.
+
+### 2. Backup eMMC
+
+Installer membuat backup penuh:
+
+```bash
+edl rf backup.bin
+```
+
+Kemudian partisi modem penting diekstrak ke:
+
+```text
+extracted/
+```
+
+Termasuk:
+
+```text
+fsc
+fsg
+modem
+modemst1
+modemst2
+persist
+sec
+```
+
+Backup ini penting karena berisi data modem yang dibutuhkan agar fungsi seluler tetap berjalan dengan benar.
+
+### 3. Masuk ke Fastboot
+
+Installer menyiapkan bootloader dan melakukan reset sehingga perangkat dapat berpindah ke Fastboot tanpa harus melalui banyak langkah manual.
+
+### 4. Flash Base Generic
+
+Partition table dan komponen dasar dari paket `base/` akan ditulis ke perangkat.
+
+### 5. Flash Debian
+
+Installer mengunduh dan memasang firmware Debian yang dipilih:
+
+```text
+bookworm.zip
+```
+
+atau:
+
+```text
+trixie.zip
+```
+
+### 6. Restore partisi modem
+
+Partisi modem dari hasil backup sebelumnya dikembalikan ke perangkat.
+
+### 7. Reboot
+
+Setelah semuanya selesai, OpenStick akan reboot ke Debian Linux.
+
+> **Jangan mencabut USB atau mematikan komputer ketika proses flashing sedang berjalan.**
+
+---
+
+# Setelah Instalasi
+
+Boot pertama dapat memerlukan waktu sekitar 40 detik.
+
+Setelah Debian berhasil boot, Anda bisa mengakses OpenStick melalui USB, Wi-Fi, atau jaringan lokal.
+
+---
+
+# Akses dari Windows
+
+Ada beberapa cara untuk mengakses OpenStick dari Windows.
+
+## A. USB RNDIS + SSH
+
+Colokkan OpenStick ke komputer.
+
+Windows biasanya akan mendeteksi perangkat sebagai:
+
+```text
+Remote NDIS Compatible Device
+```
+
+Kemudian buka PowerShell atau CMD:
+
+```bash
+ssh user@192.168.100.1
+```
+
+Password default:
+
+```text
+1
+```
+
+---
+
+## B. ADB
+
+Jika ADB tersedia:
+
+```bash
+adb connect 192.168.100.1:5555
+```
+
+Kemudian:
+
+```bash
+adb shell
+```
+
+---
+
+## C. Wi-Fi Hotspot
+
+Hubungkan Windows ke hotspot OpenStick.
+
+Default:
+
+```text
+SSID:     4G-UFI-XX
+Password: 1234567890
+```
+
+Kemudian:
+
+```bash
+ssh user@192.168.100.1
+```
+
+Password:
+
+```text
+1
+```
+
+> Sebaiknya segera ganti password default setelah instalasi selesai.
+
+---
+
+# Akses dari Linux
+
+## A. USB RNDIS
+
+Colokkan OpenStick ke PC Linux.
+
+Cari interface jaringan:
+
+```bash
+ip a
+```
+
+Nama interface bisa berbeda, misalnya:
+
+```text
+usb0
+```
+
+atau:
+
+```text
+enx...
+```
+
+Aktifkan interface:
+
+```bash
+sudo ip link set dev <nama_interface> up
+```
+
+Minta alamat IP melalui DHCP:
+
+```bash
+sudo dhclient <nama_interface>
+```
+
+Kemudian login:
+
+```bash
+ssh user@192.168.100.1
+```
+
+Password default:
+
+```text
+1
+```
+
+---
+
+## B. ADB
+
+```bash
+adb connect 192.168.100.1:5555
+adb shell
+```
+
+---
+
+## C. Wi-Fi / LAN
+
+Jika OpenStick terhubung ke jaringan Wi-Fi lokal, cari alamat IP-nya terlebih dahulu.
+
+Setelah mengetahui IP:
+
+```bash
+ssh user@<IP_LOKAL_MODEM>
+```
+
+Contoh:
+
+```bash
+ssh user@192.168.1.50
+```
+
+---
+
+# Akses Root
+
+Login SSH sebagai `root` dinonaktifkan secara default.
+
+Setelah masuk sebagai `user`, Anda bisa mendapatkan shell root dengan:
+
+```bash
+sudo su
+```
+
+Password default:
+
+```text
+1
+```
+
+Sekali lagi, sebaiknya ganti password setelah instalasi.
+
+---
+
+# Menggunakan `sbrmenu`
+
+Setelah login:
+
+```bash
+sbrmenu
+```
+
+Anda akan mendapatkan menu untuk mengatur berbagai fitur OpenStick tanpa harus mengubah konfigurasi secara manual.
+
+Beberapa opsi yang tersedia:
+
+```text
+Hotspot
+Wi-Fi Client
+4G LTE
+SMS
+DNSCrypt-Proxy
+Pi-hole
+USB Mode
+```
+
+Untuk pengguna baru, `sbrmenu` adalah cara termudah untuk mulai mengonfigurasi OpenStick.
+
+---
+
+# Build Firmware Sendiri
+
+Kalau Anda ingin membuat firmware sendiri, source code dan build system tersedia di:
+
+**[Build Your Own Firmware](https://github.com/jimmylpx/openstick/tree/main/sourcecode)**
+
+Di sana tersedia:
+
+- `build.sh`
+- `packages.list`
+- overlay filesystem
+- konfigurasi firmware
+- komponen untuk build Bookworm
+- komponen untuk build Trixie
+
+Ini cocok jika Anda ingin membuat image khusus dengan paket, service, konfigurasi jaringan, atau modifikasi sistem sendiri.
+
+---
+
+# Contoh Penggunaan
+
+OpenStick cukup fleksibel dan bisa digunakan untuk berbagai proyek kecil.
+
+### Server mini
+
+```text
+OpenStick
+    │
+    ├── Debian
+    ├── SSH
+    ├── Docker
+    └── Service lainnya
+```
+
+### Router / modem 4G
+
+```text
+Internet 4G
+     │
+     ▼
+ OpenStick
+     │
+     ├── Wi-Fi
+     └── USB RNDIS
+```
+
+### DNS server
+
+```text
+Client
+  │
+  ▼
+OpenStick
+  │
+  ├── Pi-hole
+  └── DNSCrypt-Proxy
+```
+
+### USB network adapter
+
+```text
+Wi-Fi
+  │
+  ▼
+OpenStick
+  │ USB
+  ▼
+PC / Laptop
+```
+
+Karena ukurannya kecil dan konsumsi dayanya rendah, OpenStick juga cukup menarik untuk proyek yang membutuhkan komputer Linux yang bisa menyala 24/7.
+
+---
+
+# Troubleshooting
+
+## OpenStick tidak terdeteksi sebagai EDL
+
+Cek:
+
+```bash
+lsusb
+```
+
+Pastikan muncul:
+
+```text
+05c6:9008
+```
+
+Jika tidak muncul:
+
+- pastikan kabel USB mendukung data
+- coba port USB lain
+- pastikan metode EDL sesuai dengan board
+- ulangi proses masuk EDL
+
+---
+
+## `edl` mendapatkan Permission denied
+
+Coba jalankan installer dengan:
+
+```bash
+sudo ./installer.sh
+```
+
+Terutama jika EDL dimasuki melalui:
+
+```bash
+adb reboot edl
+```
+
+---
+
+## SSH tidak bisa terhubung
+
+Pastikan OpenStick sudah selesai booting.
+
+Untuk koneksi USB, periksa apakah interface RNDIS muncul:
+
+```bash
+ip a
+```
+
+Untuk Wi-Fi, pastikan PC berada pada jaringan yang sama dengan OpenStick.
+
+---
+
+## Tidak ada internet setelah Debian boot
+
+Periksa interface:
+
+```bash
+ip a
+```
+
+Periksa routing:
+
+```bash
+ip route
+```
+
+Kemudian periksa DNS:
+
+```bash
+cat /etc/resolv.conf
+```
+
+Jika menggunakan Wi-Fi Client atau modem 4G, cek juga status koneksi melalui:
+
+```bash
+sbrmenu
+```
+
+---
+
+# Credits
+
+Proyek ini dibangun di atas kerja keras banyak proyek dan komunitas open-source.
+
+Terima kasih kepada:
+
+- **[HandsomeHacker / OpenStick Project](https://github.com/OpenStick)** — salah satu proyek awal yang membuka jalan bagi penggunaan Linux pada modem USB berbasis Qualcomm MSM8916.
+- **[msm8916-mainline](https://github.com/msm8916-mainline)** — komunitas kernel Linux mainline untuk Snapdragon 410, termasuk pekerjaan kernel 6.12.x, device tree, BAM-DMUX, dan dukungan modem.
+- **[LongQT-sea](https://github.com/LongQT-sea)** — referensi dan kontribusi terkait rootfs, kernel package, dan proses build firmware Debian.
+- **[Bjoern Kerler / edl](https://github.com/bkerler/edl)** — tool Qualcomm Sahara / Firehose untuk backup dan flashing melalui EDL.
+- **[DNSCrypt-Proxy](https://github.com/DNSCrypt/dnscrypt-proxy)** — DNS terenkripsi.
+- **[Pi-hole](https://pi-hole.net/)** — network-wide DNS sinkhole dan ad blocking.
+- **[Fastfetch](https://github.com/fastfetch-cli/fastfetch)** — informasi sistem yang ringan dan modern.
+
+---
+
+# Lisensi
+
+Proyek ini dirilis di bawah:
+
+**GNU General Public License v3.0 (GPLv3)**
+
+Lihat file [`LICENSE`](LICENSE) untuk detail lengkap mengenai lisensi.
+
+---
+
+## Catatan terakhir
+
+OpenStick memang kecil, tetapi kemampuannya cukup jauh melampaui fungsi modem USB biasa.
+
+Dengan Debian ARM64, perangkat ini bisa dijadikan modem 4G, USB network adapter, Wi-Fi client, hotspot, DNS server, server kecil, atau bahkan dasar untuk proyek Linux yang lebih besar.
+
+Kalau Anda baru pertama kali menggunakan OpenStick, **mulailah dari Debian 12 Bookworm**, buat backup terlebih dahulu, lalu gunakan `sbrmenu` untuk mengatur perangkat setelah berhasil boot.
 - **Debian 12 Bookworm (`bookworm.zip`)** — **Rekomendasi (Stabil)**: Telah teruji penuh untuk kestabilan harian, modem seluler 4G LTE, RNDIS, DNS dinamis, dan manajemen USB.
 - **Debian 13 Trixie (`trixie.zip`)** — **Eksperimental (Belum Stabil)**: Varian rilis terbaru berbasis Debian 13 Testing (paket Python 3.13, coreutils 9.7, NetworkManager 1.52). Varian ini ditujukan untuk pengujian/developer dan statusnya masih dalam tahap penyempurnaan.
 
