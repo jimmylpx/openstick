@@ -21,8 +21,8 @@ Saat ini tersedia dua pilihan firmware:
 
 | Firmware | Status | Cocok untuk |
 |---|---|---|
-| **Debian 12 Bookworm** | ⭐ Stabil / direkomendasikan | Pemakaian harian dan server |
-| **Debian 13 Trixie** | 🧪 Eksperimental | Pengujian dan development |
+| **Debian 12 Bookworm** | Stabil / direkomendasikan | Pemakaian harian dan server |
+| **Debian 13 Trixie** | Eksperimental | Pengujian dan development |
 
 **Bookworm** adalah pilihan yang paling aman jika Anda ingin OpenStick langsung dipakai sebagai server.
 
