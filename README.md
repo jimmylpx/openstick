@@ -220,28 +220,26 @@ Ketik nomor menu untuk mengonfigurasi Hotspot, WiFi Client, 4G LTE, SMS Modem, D
 
 Jika Anda ingin menambahkan paket kustom, mengedit layanan, memodifikasi kernel/overlay, atau membangun versi firmware Debian Anda sendiri, silakan kunjungi direktori source code dan build system proyek ini:
 
-👉 **[Build Your Own Firmware (Source Code & Build Guide)](https://github.com/jimmylpx/openstick/tree/main/sourcecode)**
+**[Build Your Own Firmware (Source Code & Build Guide)](https://github.com/jimmylpx/openstick/tree/main/sourcecode)**
 
 Di dalamnya telah disediakan script otomatis `build.sh`, konfigurasi paket `packages.list`, dan template overlay filesystem untuk membangun rilis Bookworm maupun Trixie secara mandiri.
 
 ---
 
-## 🎖️ Credits & Acknowledgements
+## Credits & Acknowledgements
 
 Proyek **OpenStick Debian Linux Suite** ini terwujud berkat kontribusi, riset, dan karya luar biasa dari berbagai pihak dan komunitas open-source:
 
 - **[HandsomeHacker / OpenStick Project](https://github.com/OpenStick)**: Proyek perintis awal yang memungkinkan modem USB 4G LTE Qualcomm MSM8916 menjalankan sistem operasi GNU/Linux.
 - **[msm8916-mainline Community](https://github.com/msm8916-mainline)**: Tim pengembang kernel Linux Mainline untuk Snapdragon 410 (*Stephan Gerhold dan kontributor komunitas*), yang menyediakan kernel Linux 6.12.x mainline, device tree (DTS), driver modem BAM-DMUX, serta firmware loader modem seluler.
-- **[LongQt (longqt99)](https://github.com/longqt99)**: Pengembang dan komunitas yang menyediakan referensi berharga mengenai struktur rootfs, integrasi kernel package, serta alur build firmware Debian pada perangkat OpenStick.
+- **[LongQT-sea](https://github.com/LongQT-sea)**: Pengembang dan komunitas yang menyediakan referensi berharga mengenai struktur rootfs, integrasi kernel package, serta alur build firmware Debian pada perangkat OpenStick.
 - **[Bjoern Kerler (bkerler/edl)](https://github.com/bkerler/edl)**: Tool Python Qualcomm Sahara / Firehose EDL flasher yang memungkinkan proses backup penuh eMMC dan flashing partisi via mode EDL 9008.
-- **[Debian GNU/Linux Project](https://www.debian.org/)**: Fondasi sistem operasi Debian (Bookworm & Trixie ARM64) yang stabil, aman, dan kaya ekosistem paket.
-- **[ModemManager](https://www.freedesktop.org/wiki/Software/ModemManager/) & [NetworkManager](https://networkmanager.dev/)**: Stack manajemen konektivitas jaringan seluler 4G LTE, Wi-Fi, bridge, dan USB RNDIS.
 - **[DNSCrypt-Proxy](https://github.com/DNSCrypt/dnscrypt-proxy)**: Solusi DNS over HTTPS (DoH) terenkripsi untuk privasi jaringan.
 - **[Pi-hole](https://pi-hole.net/)**: Solusi DNS sinkhole network-wide ad-blocking.
 - **[Fastfetch](https://github.com/fastfetch-cli/fastfetch)**: Tool informasi sistem neofetch-alternative yang ringan dan modern.
 
 ---
 
-## 📄 Lisensi
+## Lisensi
 
 Proyek ini dirilis di bawah lisensi open-source **[GNU General Public License v3.0 (GPLv3)](LICENSE)**. Anda bebas menggunakan, memodifikasi, dan mendistribusikan kembali proyek ini sesuai ketentuan lisensi.
