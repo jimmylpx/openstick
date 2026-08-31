@@ -184,9 +184,7 @@ sudo apt install -y adb fastboot python3 python3-pip unzip wget
 
 Kemudian install `edl` dari repository:
 
-```text
-https://github.com/bkerler/edl
-```
+**[https://github.com/bkerler/edl#linux-debianubuntumintetc]**https://github.com/bkerler/edl
 
 ---
 
@@ -802,8 +800,6 @@ Terima kasih kepada:
 Proyek ini dirilis di bawah:
 
 **GNU General Public License v3.0 (GPLv3)**
-
-Lihat file [`LICENSE`](LICENSE) untuk detail lengkap mengenai lisensi.
 
 ---
 
