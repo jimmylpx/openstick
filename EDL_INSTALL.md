@@ -55,16 +55,15 @@ sudo cp -r . /opt/edl
 
 ## 4. Konfigurasi Binary Global `/usr/local/bin/edl`
 
-Pindah ke akun **root** terlebih dahulu:
+Buat file /usr/local/bin/edl:
 
 ```bash
-sudo su
+sudo nano /usr/local/bin/edl
 ```
 
-Kemudian jalankan perintah di bawah ini untuk membuat wrapper global:
+Kemudian paste kode bawah ini untuk membuat wrapper global:
 
 ```bash
-cat << 'EOF' > /usr/local/bin/edl
 #!/usr/bin/env bash
 if [ -f "/opt/edl/edl.py" ]; then
     exec python3 /opt/edl/edl.py "$@"
@@ -72,15 +71,12 @@ else
     echo "Error: File /opt/edl/edl.py tidak ditemukan."
     exit 1
 fi
-EOF
-
-chmod 755 /usr/local/bin/edl
 ```
 
-Setelah selesai, Anda bisa keluar dari sesi root:
+Setelah selesai, lakukan chmod:
 
 ```bash
-exit
+sudo chmod +x /usr/local/bin/edl
 ```
 
 ---
