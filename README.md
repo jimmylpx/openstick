@@ -5,7 +5,7 @@
 ![License](https://img.shields.io/badge/License-GPLv3-green.svg)
 ![Release](https://img.shields.io/github/v/release/jimmylpx/openstick)
 
-OpenStick adalah dongle modem 4G LTE berbasis **Qualcomm Snapdragon 410 (MSM8916)** yang bisa diubah menjadi komputer Linux kecil dengan konsumsi daya rendah.
+OpenStick adalah project yang mengubah dongle modem 4G LTE berbasis **Qualcomm Snapdragon 410 (MSM8916)** menjadi komputer Linux kecil dengan konsumsi daya rendah.
 
 Proyek ini ditujukan untuk board seperti **HMUF02-V05, UZ801, UFI103S-V05**, dan beberapa varian OpenStick lain yang menggunakan platform MSM8916.
 
