@@ -8,6 +8,50 @@ set -e
 GITHUB_REPO="jimmylpx/openstick"
 RELEASE_TAG="v1"
 
+# Warna Terminal
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+# ------------------------------------------------------------------------------
+# 0. PENGECEKAN DEPENDENSI TOOL (ADB, FASTBOOT, EDL, PYTHON3, UNZIP)
+# ------------------------------------------------------------------------------
+MISSING_TOOLS=()
+for tool in adb fastboot edl python3 unzip; do
+    if ! command -v "$tool" &>/dev/null; then
+        MISSING_TOOLS+=("$tool")
+    fi
+done
+
+if [ ${#MISSING_TOOLS[@]} -ne 0 ]; then
+    echo -e "${RED}======================================================================${NC}"
+    echo -e "${RED}${BOLD}[ERROR] TOOL PENDUKUNG BELUM TERPASANG PADA SISTEM ANDA!${NC}"
+    echo -e "${RED}======================================================================${NC}"
+    echo -e "Tool yang belum ditemukan: ${YELLOW}${BOLD}${MISSING_TOOLS[*]}${NC}"
+    echo ""
+    echo -e "${CYAN}Silakan pasang tool yang kurang sebelum menjalankan installer ini:${NC}"
+    
+    if [[ " ${MISSING_TOOLS[*]} " =~ " adb " ]] || [[ " ${MISSING_TOOLS[*]} " =~ " fastboot " ]] || [[ " ${MISSING_TOOLS[*]} " =~ " python3 " ]] || [[ " ${MISSING_TOOLS[*]} " =~ " unzip " ]]; then
+        echo -e "  - ${BOLD}Paket Sistem (ADB, Fastboot, Python3, Unzip):${NC}"
+        echo -e "    ${GREEN}sudo apt update && sudo apt install -y adb fastboot python3 python3-pip unzip wget${NC}"
+    fi
+    
+    if [[ " ${MISSING_TOOLS[*]} " =~ " edl " ]]; then
+        echo -e "  - ${BOLD}Qualcomm EDL Tool (bkerler/edl):${NC}"
+        echo -e "    ${GREEN}Panduan Instalasi Gist : https://gist.github.com/jimmylpx/b8dba187d772e2c35ee5d2967cd71221${NC}"
+        echo -e "    ${GREEN}Atau jalankan skrip    : curl -sSL https://raw.githubusercontent.com/jimmylpx/openstick/main/sourcecode/install_edl.sh | sudo bash${NC}"
+    fi
+    
+    echo ""
+    echo -e "${RED}[!] Instalasi DIBATALKAN karena dependensi belum lengkap.${NC}"
+    echo -e "${RED}======================================================================${NC}"
+    exit 1
+fi
+
 # Deteksi lokasi direktori
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -d "${SCRIPT_DIR}/../base" ] || [ "$(basename "${SCRIPT_DIR}")" = "base" ]; then
@@ -24,17 +68,17 @@ DOWNLOADS_DIR="${ROOT_DIR}/downloads"
 mkdir -p "${EXTRACTED_DIR}" "${DOWNLOADS_DIR}"
 
 clear
-echo "======================================================================"
-echo "      OPENSTICK SNAPDRAGON 410 DIRECT ONE-CLICK MASTER INSTALLER      "
-echo "======================================================================"
-echo "Direktori Kerja : ${ROOT_DIR}"
-echo "Folder Base     : ${BASE_DIR}"
-echo "Folder Backup   : ${EXTRACTED_DIR}"
-echo "======================================================================"
+echo -e "${CYAN}======================================================================${NC}"
+echo -e "${GREEN}${BOLD}      OPENSTICK SNAPDRAGON 410 DIRECT ONE-CLICK MASTER INSTALLER      ${NC}"
+echo -e "${CYAN}======================================================================${NC}"
+echo -e "Direktori Kerja : ${BOLD}${ROOT_DIR}${NC}"
+echo -e "Folder Base     : ${BOLD}${BASE_DIR}${NC}"
+echo -e "Folder Backup   : ${BOLD}${EXTRACTED_DIR}${NC}"
+echo -e "${CYAN}======================================================================${NC}"
 echo ""
 
 # Pilihan Varian Debian
-echo "Pilih Varian Sistem Operasi Debian yang ingin Anda pasang:"
+echo -e "${YELLOW}Pilih Varian Sistem Operasi Debian yang ingin Anda pasang:${NC}"
 echo "  1) Debian 12 Bookworm  [Rekomendasi - Stabil untuk pemakaian harian]"
 echo "  2) Debian 13 Trixie    [Eksperimental - Belum Stabil / Tahap Uji Coba]"
 echo ""
@@ -59,11 +103,11 @@ DISTRO_URL="https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}/$
 mkdir -p "${DISTRO_DIR}"
 
 echo ""
-echo "[+] Varian terpilih: ${DISTRO_TITLE}"
-echo "======================================================================"
+echo -e "[+] Varian terpilih: ${GREEN}${BOLD}${DISTRO_TITLE}${NC}"
+echo -e "${CYAN}======================================================================${NC}"
 echo ""
 
-# Helper: Ekstraksi partisi GPT dari full raw dump (backup.bin / HM.bin)
+# Helper: Ekstraksi partisi GPT dari full raw dump (backup.bin)
 extract_gpt_partitions() {
     local bin_file="$1"
     local out_dir="$2"
@@ -75,6 +119,7 @@ out_dir = sys.argv[2]
 required = ['fsc', 'fsg', 'modem', 'modemst1', 'modemst2', 'persist', 'sec']
 
 if not os.path.exists(bin_file):
+    print(f'[!] File {bin_file} tidak ditemukan.')
     sys.exit(1)
 
 print(f'[*] Membaca GPT partition table dari {bin_file}...')
@@ -113,13 +158,13 @@ with open(bin_file, 'rb') as f:
                 break
 
 print(f'[*] Selesai mengekstrak {extracted_count} partisi asli.')
-" "${bin_file}" "${out_dir}" 2>/dev/null || true
+" "${bin_file}" "${out_dir}"
 }
 
 # ==============================================================================
 # [TAHAP 1/4] DETEKSI STATUS MODEM & MANAJEMEN BACKUP
 # ==============================================================================
-echo -e "\033[1;33m>>> [TAHAP 1/4] Memeriksa status koneksi perangkat (EDL 9008 / Fastboot)...\033[0m"
+echo -e "${YELLOW}${BOLD}>>> [TAHAP 1/4] Memeriksa status koneksi perangkat (EDL 9008 / Fastboot)...${NC}"
 
 REQUIRED_PARTS=("fsc" "fsg" "modem" "modemst1" "modemst2" "persist" "sec")
 FASTBOOT_READY_WITH_BACKUP=false
@@ -136,11 +181,11 @@ done
 
 # Kondisi 1: Perangkat SUDAH di Fastboot DAN Ditemukan File Backup Sebelumnya
 if fastboot devices 2>/dev/null | grep -qE "[a-zA-Z0-9]+\s+fastboot" && ( [ -n "$EXISTING_BACKUP" ] || [ "$HAS_ALL_EXTRACTED" = true ] ); then
-    echo "[OK] Perangkat terdeteksi di mode Fastboot!"
+    echo -e "${GREEN}[OK] Perangkat terdeteksi di mode Fastboot!${NC}"
     
     if [ "$HAS_ALL_EXTRACTED" = false ] && [ -n "$EXISTING_BACKUP" ]; then
         echo ""
-        echo "[!] Ditemukan file backup sebelumnya: $(basename "${EXISTING_BACKUP}")"
+        echo -e "${YELLOW}[!] Ditemukan file backup sebelumnya: $(basename "${EXISTING_BACKUP}")${NC}"
         read -r -p "Apakah file ini adalah backup dari perangkat saat ini? (y/n, default: y): " USE_EXISTING
         USE_EXISTING=${USE_EXISTING:-y}
         if [[ "$USE_EXISTING" =~ ^[Yy]$ ]]; then
@@ -155,8 +200,8 @@ if fastboot devices 2>/dev/null | grep -qE "[a-zA-Z0-9]+\s+fastboot" && ( [ -n "
     fi
 
     if [ "$FASTBOOT_READY_WITH_BACKUP" = true ]; then
-        echo "[OK] Seluruh partisi backup asli sudah siap."
-        echo "[OK] Menyesuaikan kondisi: langsung melanjutkan proses download & flashing firmware..."
+        echo -e "${GREEN}[OK] Seluruh partisi backup asli sudah siap.${NC}"
+        echo -e "${GREEN}[OK] Menyesuaikan kondisi: langsung melanjutkan proses download & flashing firmware...${NC}"
     fi
 fi
 
@@ -164,8 +209,8 @@ fi
 if [ "$FASTBOOT_READY_WITH_BACKUP" = false ]; then
     if fastboot devices 2>/dev/null | grep -qE "[a-zA-Z0-9]+\s+fastboot" && [ -z "$EXISTING_BACKUP" ] && [ "$HAS_ALL_EXTRACTED" = false ]; then
         echo ""
-        echo "[!] Perangkat berada di mode Fastboot tetapi BELUM DITEMUKAN file backup eMMC!"
-        echo "[!] Untuk mengamankan partisi baseband (IMEI & sinyal 4G), perangkat WAJIB di-backup terlebih dahulu."
+        echo -e "${RED}[!] Perangkat berada di mode Fastboot tetapi BELUM DITEMUKAN file backup eMMC!${NC}"
+        echo -e "${YELLOW}[!] Untuk mengamankan partisi baseband (IMEI & sinyal 4G), perangkat WAJIB di-backup terlebih dahulu.${NC}"
         echo "    -> Silakan cabut modem dari port USB."
         echo "    -> Tahan tombol fisik EDL (atau hubungkan titik test point EDL), lalu colokkan kembali ke port USB."
         echo ""
@@ -174,7 +219,7 @@ if [ "$FASTBOOT_READY_WITH_BACKUP" = false ]; then
     echo "Menunggu modem dalam mode EDL (Qualcomm 9008)..."
     while true; do
         if lsusb 2>/dev/null | grep -qi "05c6:9008" || [ -e /dev/ttyUSB0 ]; then
-            echo "[OK] Port EDL Qualcomm 9008 terdeteksi!"
+            echo -e "${GREEN}[OK] Port EDL Qualcomm 9008 terdeteksi!${NC}"
             break
         else
             echo -n "."
@@ -193,12 +238,12 @@ if [ "$FASTBOOT_READY_WITH_BACKUP" = false ]; then
 
         if [ -n "$EXISTING_BACKUP" ] && [ -f "$EXISTING_BACKUP" ]; then
             echo ""
-            echo "[!] Ditemukan file backup sebelumnya: $(basename "${EXISTING_BACKUP}")"
+            echo -e "${YELLOW}[!] Ditemukan file backup sebelumnya: $(basename "${EXISTING_BACKUP}")${NC}"
             read -r -p "Apakah file ini adalah backup dari perangkat saat ini? (y/n, default: y): " USE_EXISTING
             USE_EXISTING=${USE_EXISTING:-y}
 
             if [[ "$USE_EXISTING" =~ ^[Yy]$ ]]; then
-                echo "[OK] Menggunakan file backup yang ada. Proses dump EDL dilewati (skip backup)..."
+                echo -e "${GREEN}[OK] Menggunakan file backup yang ada. Proses dump EDL dilewati (skip backup)...${NC}"
                 FULL_BACKUP_PATH="${EXISTING_BACKUP}"
                 SKIP_BACKUP=true
             else
@@ -207,8 +252,8 @@ if [ "$FASTBOOT_READY_WITH_BACKUP" = false ]; then
         fi
 
         if [ "$SKIP_BACKUP" = false ]; then
-            echo "[*] Melakukan FULL RAW DUMP seluruh eMMC flash via edl -> ${BACKUP_NAME}..."
-            edl rf "${FULL_BACKUP_PATH}" 2>/dev/null || true
+            echo -e "${BLUE}[*] Melakukan FULL RAW DUMP seluruh eMMC flash via edl -> ${BACKUP_NAME}...${NC}"
+            edl rf "${FULL_BACKUP_PATH}"
         fi
 
         # Ekstrak partisi asli
@@ -218,18 +263,18 @@ if [ "$FASTBOOT_READY_WITH_BACKUP" = false ]; then
             echo "[*] Mencadangkan partisi individual via edl..."
             for p in "${REQUIRED_PARTS[@]}"; do
                 echo "    -> Dumping ${p}..."
-                edl r "${p}" "${EXTRACTED_DIR}/${p}.bin" 2>/dev/null || true
+                edl r "${p}" "${EXTRACTED_DIR}/${p}.bin"
             done
         fi
 
-        echo "[*] Menyiapkan Fastboot direct jump via EDL..."
+        echo -e "${BLUE}[*] Menyiapkan Fastboot direct jump via EDL...${NC}"
         echo "    -> Menulis bootloader aboot..."
-        edl w aboot "${BASE_DIR}/aboot.bin" 2>/dev/null || true
+        edl w aboot "${BASE_DIR}/aboot.bin"
         echo "    -> Mengosongkan partisi boot (force Fastboot mode)..."
-        edl e boot 2>/dev/null || true
+        edl e boot
         echo "    -> Mengirim edl reset (langsung melompat ke Fastboot)..."
-        edl reset 2>/dev/null || true
-        echo "[OK] Reset terkirim, beralih langsung ke Fastboot mode..."
+        edl reset || true
+        echo -e "${GREEN}[OK] Reset terkirim, beralih langsung ke Fastboot mode...${NC}"
         sleep 2
     fi
 fi
@@ -238,7 +283,7 @@ fi
 # [TAHAP 2/4] VERIFIKASI FASTBOOT & FLASH BASE GENERIC
 # ==============================================================================
 echo ""
-echo -e "\033[1;33m>>> [TAHAP 2/4] Menunggu perangkat online di Fastboot mode...\033[0m"
+echo -e "${YELLOW}${BOLD}>>> [TAHAP 2/4] Menunggu perangkat online di Fastboot mode...${NC}"
 while true; do
     if fastboot devices 2>/dev/null | grep -qE "[a-zA-Z0-9]+\s+fastboot"; then
         break
@@ -246,11 +291,11 @@ while true; do
     echo -n "."
     sleep 1
 done
-echo "[OK] Perangkat terdeteksi di Fastboot:"
+echo -e "${GREEN}[OK] Perangkat terdeteksi di Fastboot:${NC}"
 fastboot devices
 echo ""
 
-echo -e "\033[1;33m>>> Flashing Base Generic Partitions...\033[0m"
+echo -e "${YELLOW}${BOLD}>>> Flashing Base Generic Partitions...${NC}"
 if [ -f "${BASE_DIR}/gpt_both0.bin" ]; then
     fastboot flash partition "${BASE_DIR}/gpt_both0.bin"
     fastboot flash hyp "${BASE_DIR}/hyp.mbn"
@@ -258,16 +303,16 @@ if [ -f "${BASE_DIR}/gpt_both0.bin" ]; then
     fastboot flash sbl1 "${BASE_DIR}/sbl1.mbn"
     fastboot flash tz "${BASE_DIR}/tz.mbn"
     [ -f "${BASE_DIR}/sbc_1.0_8016.bin" ] && fastboot flash cdt "${BASE_DIR}/sbc_1.0_8016.bin" || true
-    fastboot erase boot 2>/dev/null || true
-    fastboot erase rootfs 2>/dev/null || true
+    fastboot erase boot || true
+    fastboot erase rootfs || true
 fi
-echo "[OK] Tahap Base generic selesai!"
+echo -e "${GREEN}[OK] Tahap Base generic selesai!${NC}"
 
 # ==============================================================================
 # [TAHAP 3/4] DOWNLOAD & FLASH DEBIAN FIRMWARE (BOOKWORM / TRIXIE)
 # ==============================================================================
 echo ""
-echo -e "\033[1;33m>>> [TAHAP 3/4] Menyiapkan & Flashing ${DISTRO_TITLE} (/${DISTRO_NAME})...\033[0m"
+echo -e "${YELLOW}${BOLD}>>> [TAHAP 3/4] Menyiapkan & Flashing ${DISTRO_TITLE} (/${DISTRO_NAME})...${NC}"
 
 if [ ! -f "${DISTRO_DIR}/rootfs.bin" ] || [ ! -f "${DISTRO_DIR}/boot.bin" ]; then
     LOCAL_ZIP="${DOWNLOADS_DIR}/${DISTRO_ZIP}"
@@ -276,17 +321,17 @@ if [ ! -f "${DISTRO_DIR}/rootfs.bin" ] || [ ! -f "${DISTRO_DIR}/boot.bin" ]; the
     fi
 
     if [ ! -f "${LOCAL_ZIP}" ]; then
-        echo "[*] Mengunduh ${DISTRO_ZIP} dari ${DISTRO_URL}..."
+        echo -e "${BLUE}[*] Mengunduh ${DISTRO_ZIP} dari ${DISTRO_URL}...${NC}"
         wget -c -O "${DOWNLOADS_DIR}/${DISTRO_ZIP}" "${DISTRO_URL}" || \
         curl -L -o "${DOWNLOADS_DIR}/${DISTRO_ZIP}" "${DISTRO_URL}"
         LOCAL_ZIP="${DOWNLOADS_DIR}/${DISTRO_ZIP}"
     fi
 
-    echo "[*] Mengekstrak ${LOCAL_ZIP} ke ${DISTRO_DIR}..."
-    unzip -q -o "${LOCAL_ZIP}" -d "${DISTRO_DIR}"
+    echo -e "${BLUE}[*] Mengekstrak ${LOCAL_ZIP} ke ${DISTRO_DIR}...${NC}"
+    unzip -o "${LOCAL_ZIP}" -d "${DISTRO_DIR}"
 fi
 
-echo "[*] Flashing firmware ${DISTRO_TITLE} (dengan Wi-Fi WCNSS, fastfetch, sbrmenu, fix ping & dynamic DNS)..."
+echo -e "${BLUE}[*] Flashing firmware ${DISTRO_TITLE} (dengan Wi-Fi WCNSS, fastfetch, sbrmenu, fix ping & dynamic DNS)...${NC}"
 fastboot flash partition "${DISTRO_DIR}/gpt_both0.bin"
 fastboot flash aboot "${DISTRO_DIR}/aboot.mbn"
 fastboot flash hyp "${DISTRO_DIR}/hyp.mbn"
@@ -296,31 +341,31 @@ fastboot flash tz "${DISTRO_DIR}/tz.mbn"
 fastboot flash boot "${DISTRO_DIR}/boot.bin"
 fastboot -S 200M flash rootfs "${DISTRO_DIR}/rootfs.bin"
 
-echo "[OK] Firmware ${DISTRO_TITLE} berhasil di-flash!"
+echo -e "${GREEN}[OK] Firmware ${DISTRO_TITLE} berhasil di-flash!${NC}"
 
 # ==============================================================================
 # [TAHAP 4/4] RESTORE ORIGINAL BASEBAND PARTITIONS & REBOOT
 # ==============================================================================
 echo ""
-echo -e "\033[1;33m>>> [TAHAP 4/4] Mengembalikan partisi asli dari folder extracted/...\033[0m"
+echo -e "${YELLOW}${BOLD}>>> [TAHAP 4/4] Mengembalikan partisi asli dari folder extracted/...${NC}"
 for n in "${REQUIRED_PARTS[@]}"; do
     PART_PATH="${EXTRACTED_DIR}/${n}.bin"
     if [ -f "${PART_PATH}" ]; then
-        echo "    -> Flashing ${n} (${PART_PATH})..."
+        echo -e "    -> Flashing ${BOLD}${n}${NC} (${PART_PATH})..."
         fastboot flash "${n}" "${PART_PATH}"
     else
-        echo "    [!] File ${PART_PATH} tidak ditemukan, melewati partisi ${n}."
+        echo -e "    ${YELLOW}[!] File ${PART_PATH} tidak ditemukan, melewati partisi ${n}.${NC}"
     fi
 done
 
 echo ""
-echo "======================================================================"
-echo -e "\033[1;32m   PROSES FLASHING SELESAI! ME-REBOOT PERANGKAT KE LINUX...           \033[0m"
-echo "======================================================================"
+echo -e "${CYAN}======================================================================${NC}"
+echo -e "${GREEN}${BOLD}   PROSES FLASHING SELESAI! ME-REBOOT PERANGKAT KE LINUX...           ${NC}"
+echo -e "${CYAN}======================================================================${NC}"
 fastboot reboot
 
 echo ""
-echo "Perangkat sedang me-reboot ke sistem ${DISTRO_TITLE}."
+echo -e "${GREEN}Perangkat sedang me-reboot ke sistem ${DISTRO_TITLE}.${NC}"
 echo "Setelah booting selesai (~40 detik):"
 echo "  - Wi-Fi Hotspot : SSID '4G-UFI-XX' (Password: 1234567890)"
 echo "  - Windows PC    : Colokkan USB (RNDIS) -> ssh user@192.168.100.1"
@@ -330,6 +375,6 @@ echo "                    sudo dhclient <nama_interface>"
 echo "  - Login SSH     : ssh user@192.168.100.1 (Password: 1)"
 echo "  - Akses ADB     : adb connect 192.168.100.1:5555 && adb shell"
 echo ""
-echo "Setelah login, ketik 'sbrmenu' untuk mengelola Hotspot, 4G LTE, SMS, dan USB Mode."
-echo "Untuk akses root: jalankan 'sudo su' (Password: 1)"
-echo "======================================================================"
+echo -e "${YELLOW}Setelah login, ketik 'sbrmenu' untuk mengelola Hotspot, 4G LTE, SMS, dan USB Mode.${NC}"
+echo -e "Untuk akses root: jalankan ${CYAN}sudo su${NC} (Password: 1)"
+echo -e "${CYAN}======================================================================${NC}"
