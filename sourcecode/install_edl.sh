@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Script Auto-Installer Qualcomm EDL Tool (bkerler/edl)
+# Script Auto-Installer Qualcomm EDL Tool (bkerler/edl + MSM8916 Loaders)
 # Kompatibel: Debian 11/12/13, Ubuntu 20.04/22.04/24.04, Linux Mint, Raspberry Pi OS
 # Aman dari pembatasan PEP 668 (externally-managed-environment)
 # ==============================================================================
@@ -31,7 +31,7 @@ fi
 REAL_USER="${SUDO_USER:-$USER}"
 
 # 2. Instalasi Dependensi Sistem
-echo -e "${BLUE}[1/5] Memperbarui repositori & menginstal dependensi sistem...${NC}"
+echo -e "${BLUE}[1/6] Memperbarui repositori & menginstal dependensi sistem...${NC}"
 apt-get update -y
 apt-get install -y --no-install-recommends \
     git \
@@ -51,8 +51,8 @@ apt-get install -y --no-install-recommends \
     android-sdk-platform-tools-common \
     udev
 
-# 3. Pemasangan Udev Rules Qualcomm 9008 (Akses tanpa sudo)
-echo -e "${BLUE}[2/5] Mengonfigurasi Udev Rules Qualcomm EDL (05c6:9008)...${NC}"
+# 3. Pemasangan Udev Rules Qualcomm 9008 (Akses tanpa kendala permission)
+echo -e "${BLUE}[2/6] Mengonfigurasi Udev Rules Qualcomm EDL (05c6:9008)...${NC}"
 UDEV_RULE_FILE="/etc/udev/rules.d/99-qualcomm-edl.rules"
 cat << 'EOF' > "$UDEV_RULE_FILE"
 # Qualcomm Emergency Download Mode (EDL 9008)
@@ -77,7 +77,7 @@ if [ -n "$REAL_USER" ]; then
 fi
 
 # 4. Kloning Source Code & Pemasangan Virtual Environment di /opt/edl
-echo -e "${BLUE}[3/5] Mengunduh repository bkerler/edl terbaru ke /opt/edl-src...${NC}"
+echo -e "${BLUE}[3/6] Mengunduh repository bkerler/edl terbaru ke /opt/edl-src...${NC}"
 rm -rf /opt/edl /opt/edl-src
 git clone --depth 1 https://github.com/bkerler/edl.git /opt/edl-src
 
@@ -87,16 +87,32 @@ python3 -m venv /opt/edl
 /opt/edl/bin/pip install -r /opt/edl-src/requirements.txt
 /opt/edl/bin/pip install -e /opt/edl-src
 
-# 5. Membuat Wrapper Binary Global di /usr/local/bin/edl
-echo -e "${BLUE}[4/5] Membuat wrapper binary global /usr/local/bin/edl...${NC}"
+# 5. Mengunduh Database Loaders & Firehose Programmer MSM8916
+echo -e "${BLUE}[4/6] Mengunduh Qualcomm Loaders & Firehose Programmer MSM8916...${NC}"
+git clone --depth 1 https://github.com/bkerler/Loaders.git /opt/edl-src/Loaders 2>/dev/null || true
+
+# Download Firehose MSM8916.mbn (Universal Snapdragon 410 / MSM8916 Programmer)
+mkdir -p /opt/edl-src/Loaders/qualcomm/MSM8916 /opt/edl-src/Loaders/generic
+FIREHOSE_8916_URL="https://raw.githubusercontent.com/zenlty/Qualcomm-Firehose/master/MSM8916.mbn"
+curl -sSL -o /opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn "$FIREHOSE_8916_URL" || \
+wget -q -O /opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn "$FIREHOSE_8916_URL"
+
+# Pasang alias HWID & PK_HASH agar EDL otomatis mendeteksi tanpa argumen --loader
+cp -f /opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn /opt/edl-src/Loaders/qualcomm/MSM8916/007050e100000000_cc3153a80293939b_fhprg.bin
+cp -f /opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn /opt/edl-src/Loaders/qualcomm/MSM8916/007050e100000000_fhprg.bin
+cp -f /opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn /opt/edl-src/Loaders/generic/prog_emmc_firehose_8916.mbn
+cp -f /opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn /opt/edl-src/Loaders/prog_emmc_firehose_8916.mbn
+
+# 6. Membuat Wrapper Binary Global di /usr/local/bin/edl
+echo -e "${BLUE}[5/6] Membuat wrapper binary global /usr/local/bin/edl...${NC}"
 cat << 'EOF' > /usr/local/bin/edl
 #!/usr/bin/env bash
 exec /opt/edl/bin/python3 /opt/edl-src/edl.py "$@"
 EOF
 chmod 755 /usr/local/bin/edl
 
-# 6. Verifikasi Perintah EDL
-echo -e "${BLUE}[5/5] Memverifikasi instalasi...${NC}"
+# 7. Verifikasi Perintah EDL
+echo -e "${BLUE}[6/6] Memverifikasi instalasi...${NC}"
 echo ""
 if /usr/local/bin/edl -h &>/dev/null || [ -f "/usr/local/bin/edl" ]; then
     echo -e "${GREEN}======================================================================${NC}"
@@ -104,14 +120,7 @@ if /usr/local/bin/edl -h &>/dev/null || [ -f "/usr/local/bin/edl" ]; then
     echo -e "${GREEN}======================================================================${NC}"
     echo -e "Lokasi Perintah : ${CYAN}/usr/local/bin/edl${NC}"
     echo -e "Lokasi Source   : ${CYAN}/opt/edl-src${NC}"
-    echo -e "Environment     : ${CYAN}/opt/edl${NC}"
-    echo -e "Udev Rules      : ${CYAN}/etc/udev/rules.d/99-qualcomm-edl.rules${NC}"
-    echo ""
-    echo -e "${YELLOW}Perintah Umum EDL:${NC}"
-    echo -e "  - Cek koneksi EDL 9008 : ${CYAN}edl printgpt${NC}"
-    echo -e "  - Backup eMMC penuh    : ${CYAN}edl rf backup.bin${NC}"
-    echo -e "  - Reset ke Fastboot    : ${CYAN}edl reset${NC}"
-    echo -e "  - Bantuan lengkap      : ${CYAN}edl --help${NC}"
+    echo -e "Loaders DB      : ${CYAN}/opt/edl-src/Loaders (Termasuk MSM8916 Firehose)${NC}"
     echo "======================================================================"
 else
     echo -e "${RED}[X] Instalasi gagal. Silakan periksa pesan kesalahan di atas.${NC}"
