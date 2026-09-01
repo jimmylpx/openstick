@@ -1,6 +1,7 @@
 # OpenStick Snapdragon 410 (MSM8916) — Debian Linux Suite
 
 ![Linux](https://img.shields.io/badge/OS-Debian%2012%20ARM64-red.svg)
+![Linux](https://img.shields.io/badge/OS-Debian%2013%20ARM64-red.svg)
 ![Kernel](https://img.shields.io/badge/Kernel-Linux%206.12.x--msm8916-blue.svg)
 ![License](https://img.shields.io/badge/License-GPLv3-green.svg)
 ![Release](https://img.shields.io/github/v/release/jimmylpx/openstick)
