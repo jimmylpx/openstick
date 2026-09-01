@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Script Auto-Installer Qualcomm EDL Tool (bkerler/edl + MSM8916 Loaders)
-# Kompatibel: Debian 11/12/13, Ubuntu 20.04/22.04/24.04, Linux Mint, Raspberry Pi OS
-# Aman dari pembatasan PEP 668 (externally-managed-environment)
+# Script Auto-Installer Qualcomm EDL Tool (bkerler/edl)
+# Menggunakan alur resmi git clone + submodule + install-linux-edl-drivers.sh
 # ==============================================================================
 
 set -e
@@ -17,7 +16,7 @@ BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 echo -e "${CYAN}======================================================================${NC}"
-echo -e "${GREEN}${BOLD}      AUTO INSTALLER QUALCOMM EDL TOOL (DEBIAN & DISTRO SEJENIS)      ${NC}"
+echo -e "${GREEN}${BOLD}       AUTO INSTALLER QUALCOMM EDL TOOL (BKERLER / OFFICIAL)         ${NC}"
 echo -e "${CYAN}======================================================================${NC}"
 echo ""
 
@@ -30,8 +29,8 @@ fi
 
 REAL_USER="${SUDO_USER:-$USER}"
 
-# 2. Instalasi Dependensi Sistem
-echo -e "${BLUE}[1/6] Memperbarui repositori & menginstal dependensi sistem...${NC}"
+# 2. Instalasi Dependensi Sistem & Compiler
+echo -e "${BLUE}[1/5] Menginstal dependensi sistem & compiler...${NC}"
 apt-get update -y
 apt-get install -y --no-install-recommends \
     git \
@@ -39,106 +38,72 @@ apt-get install -y --no-install-recommends \
     wget \
     python3 \
     python3-pip \
-    python3-venv \
     python3-dev \
     python3-setuptools \
     libusb-1.0-0 \
     libusb-1.0-0-dev \
-    libxml2-dev \
-    libxslt1-dev \
     build-essential \
     pkg-config \
     android-sdk-platform-tools-common \
     udev
 
-# 3. Pemasangan Udev Rules Qualcomm 9008 (Akses tanpa kendala permission)
-echo -e "${BLUE}[2/6] Mengonfigurasi Udev Rules Qualcomm EDL (05c6:9008)...${NC}"
-UDEV_RULE_FILE="/etc/udev/rules.d/99-qualcomm-edl.rules"
-cat << 'EOF' > "$UDEV_RULE_FILE"
-# Qualcomm Emergency Download Mode (EDL 9008)
-SUBSYSTEM=="usb", ATTR{idVendor}=="05c6", ATTR{idProduct}=="9008", MODE="0666", GROUP="plugdev"
-# Qualcomm Fastboot Mode
-SUBSYSTEM=="usb", ATTR{idVendor}=="05c6", ATTR{idProduct}=="901d", MODE="0666", GROUP="plugdev"
-SUBSYSTEM=="usb", ATTR{idVendor}=="05c6", ATTR{idProduct}=="9025", MODE="0666", GROUP="plugdev"
-SUBSYSTEM=="usb", ATTR{idVendor}=="05c6", ATTR{idProduct}=="90b6", MODE="0666", GROUP="plugdev"
-# Generic Qualcomm Modem USB
-SUBSYSTEM=="usb", ATTRS{idVendor}=="05c6", MODE="0666", GROUP="plugdev"
-EOF
+# 3. Kloning Source Code & Submodules
+echo -e "${BLUE}[2/5] Mengunduh repository bkerler/edl & submodules...${NC}"
+INSTALL_DIR="/opt/edl"
+rm -rf "$INSTALL_DIR"
+git clone https://github.com/bkerler/edl.git "$INSTALL_DIR"
+cd "$INSTALL_DIR"
+git submodule update --init --recursive
 
-chmod 644 "$UDEV_RULE_FILE"
-udevadm control --reload-rules 2>/dev/null || true
-udevadm trigger 2>/dev/null || true
+# 4. Pemasangan Driver & Udev Rules Resmi Linux EDL
+echo -e "${BLUE}[3/5] Memasang driver & udev rules Linux EDL...${NC}"
+if [ -f "./install-linux-edl-drivers.sh" ]; then
+    chmod +x ./install-linux-edl-drivers.sh
+    ./install-linux-edl-drivers.sh || true
+fi
 
-# Tambahkan user ke grup plugdev dan dialout
+# Pastikan user terdaftar di grup dialout & plugdev
 groupadd -f plugdev
 groupadd -f dialout
 if [ -n "$REAL_USER" ]; then
     usermod -aG plugdev,dialout "$REAL_USER" 2>/dev/null || true
 fi
 
-# 4. Kloning Source Code & Pemasangan Virtual Environment di /opt/edl
-echo -e "${BLUE}[3/6] Mengunduh repository bkerler/edl terbaru ke /opt/edl-src...${NC}"
-rm -rf /opt/edl /opt/edl-src
-git clone --depth 1 https://github.com/bkerler/edl.git /opt/edl-src
+# 5. Pemasangan Package Python via Pip3
+echo -e "${BLUE}[4/5] Menginstal edl package via pip3 (--break-system-packages)...${NC}"
+pip3 install . --break-system-packages --ignore-installed
 
-echo -e "${BLUE}[*] Membuat environment Python terisolasi di /opt/edl (PEP 668 Safe)...${NC}"
-python3 -m venv /opt/edl
-/opt/edl/bin/pip install --upgrade pip setuptools wheel
-/opt/edl/bin/pip install -r /opt/edl-src/requirements.txt
-/opt/edl/bin/pip install -e /opt/edl-src
-
-# 5. Mengunduh Database Loaders & Firehose Programmer MSM8916
-echo -e "${BLUE}[4/6] Mengunduh Qualcomm Loaders & Firehose Programmer MSM8916...${NC}"
-git clone --depth 1 https://github.com/bkerler/Loaders.git /opt/edl-src/Loaders 2>/dev/null || true
-
-# Symlink Loaders directory agar loader_utils internal dapat menemukan path database
-ln -sf /opt/edl-src/Loaders /opt/edl-src/edlclient/Loaders 2>/dev/null || true
-ln -sf /opt/edl-src/Loaders /opt/edl/Loaders 2>/dev/null || true
-
-# Download Firehose MSM8916.mbn (Universal Snapdragon 410 / MSM8916 Programmer)
-mkdir -p /opt/edl-src/Loaders/qualcomm/MSM8916 /opt/edl-src/Loaders/generic
-FIREHOSE_8916_URL="https://raw.githubusercontent.com/zenlty/Qualcomm-Firehose/master/MSM8916.mbn"
-curl -sSL -o /opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn "$FIREHOSE_8916_URL" || \
-wget -q -O /opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn "$FIREHOSE_8916_URL"
-
-# Pasang alias HWID & PK_HASH agar EDL otomatis mendeteksi tanpa argumen --loader
-cp -f /opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn /opt/edl-src/Loaders/qualcomm/MSM8916/007050e100000000_cc3153a80293939b_fhprg.bin
-cp -f /opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn /opt/edl-src/Loaders/qualcomm/MSM8916/007050e100000000_fhprg.bin
-cp -f /opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn /opt/edl-src/Loaders/generic/prog_emmc_firehose_8916.mbn
-cp -f /opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn /opt/edl-src/Loaders/prog_emmc_firehose_8916.mbn
-
-# 6. Membuat Wrapper Binary Global di /usr/local/bin/edl
-echo -e "${BLUE}[5/6] Membuat wrapper binary global /usr/local/bin/edl...${NC}"
+# 6. Pembuatan Binary Executable Global di /usr/local/bin/edl
+echo -e "${BLUE}[5/5] Mengonfigurasi binary global /usr/local/bin/edl...${NC}"
 cat << 'EOF' > /usr/local/bin/edl
 #!/usr/bin/env bash
-SCRIPT_DIR="/opt/edl-src"
-DEFAULT_LOADER="$SCRIPT_DIR/Loaders/qualcomm/MSM8916/MSM8916.mbn"
-
-# Jika argumen tidak memuat --loader dan loader default tersedia, sertakan otomatis
-if [[ "$*" != *"--loader"* ]] && [ -f "$DEFAULT_LOADER" ]; then
-    exec /opt/edl/bin/python3 "$SCRIPT_DIR/edl.py" --loader="$DEFAULT_LOADER" "$@"
+if [ -f "/opt/edl/edl.py" ]; then
+    exec python3 /opt/edl/edl.py "$@"
+elif command -v python3 &>/dev/null; then
+    exec python3 -m edlclient.edl "$@"
 else
-    exec /opt/edl/bin/python3 "$SCRIPT_DIR/edl.py" "$@"
+    echo "Error: Python3 atau EDL source tidak ditemukan."
+    exit 1
 fi
 EOF
 chmod 755 /usr/local/bin/edl
 
-# 7. Verifikasi Perintah EDL
-echo -e "${BLUE}[6/6] Memverifikasi instalasi...${NC}"
+# 7. Verifikasi
+echo -e "${BLUE}[*] Memverifikasi instalasi...${NC}"
 echo ""
-if /usr/local/bin/edl -h &>/dev/null || [ -f "/usr/local/bin/edl" ]; then
+if command -v edl &>/dev/null || [ -f "/usr/local/bin/edl" ]; then
     echo -e "${GREEN}======================================================================${NC}"
     echo -e "${GREEN}${BOLD}     [OK] Qualcomm EDL Tool BERHASIL TERINSTALL & SIAP DIGUNAKAN!     ${NC}"
     echo -e "${GREEN}======================================================================${NC}"
-    echo -e "Lokasi Perintah : ${CYAN}/usr/local/bin/edl${NC}"
-    echo -e "Lokasi Source   : ${CYAN}/opt/edl-src${NC}"
-    echo -e "Default Loader  : ${CYAN}/opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn${NC}"
+    echo -e "Lokasi Source   : ${CYAN}/opt/edl${NC}"
+    echo -e "Perintah Global : ${CYAN}edl${NC} (Path: ${CYAN}/usr/local/bin/edl${NC})"
+    echo ""
+    echo -e "${YELLOW}Perintah Penggunaan:${NC}"
+    echo -e "  - Cek koneksi EDL    : ${CYAN}edl printgpt${NC}"
+    echo -e "  - Backup eMMC penuh  : ${CYAN}edl rf backup.bin${NC}"
+    echo -e "  - Reset ke Fastboot  : ${CYAN}edl reset${NC}"
+    echo -e "  - Bantuan lengkap    : ${CYAN}edl --help${NC}"
     echo "======================================================================${NC}"
-    echo -e "${YELLOW}Perintah Umum EDL:${NC}"
-    echo -e "  - Cek partisi eMMC     : ${CYAN}edl printgpt${NC}"
-    echo -e "  - Backup eMMC penuh    : ${CYAN}edl rf backup.bin${NC}"
-    echo -e "  - Reset ke Fastboot    : ${CYAN}edl reset${NC}"
-    echo -e "======================================================================"
 else
     echo -e "${RED}[X] Instalasi gagal. Silakan periksa pesan kesalahan di atas.${NC}"
     exit 1
