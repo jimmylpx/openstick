@@ -96,7 +96,7 @@ edl printgpt
 
 ---
 
-> 💡 **Tips Izin Port USB:**  
+> **Tips Izin Port USB:**  
 > Jika saat menjalankan `edl` muncul kendala izin akses USB, pastikan user Anda telah dimasukkan ke grup `plugdev` & `dialout`:
 > ```bash
 > sudo usermod -aG plugdev,dialout $USER
