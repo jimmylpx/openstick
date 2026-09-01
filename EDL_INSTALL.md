@@ -1,4 +1,4 @@
-# 🛠️ Panduan Instalasi Qualcomm EDL Tool (bkerler/edl) di Linux
+# Panduan Instalasi Qualcomm EDL Tool (bkerler/edl) di Linux
 
 Panduan langkah demi langkah untuk menginstal **Qualcomm Sahara / Firehose EDL Tool (`bkerler/edl`)** pada distro Linux berbasis Debian (Ubuntu, Debian 11/12/13, Linux Mint, Raspberry Pi OS, dsb.), serta mengonfigurasi perintah `edl` agar dapat dijalankan sebagai binary global dari direktori mana saja.
 
