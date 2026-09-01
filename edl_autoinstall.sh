@@ -29,6 +29,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 REAL_USER="${SUDO_USER:-$USER}"
+USER_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
 
 # 2. Instal Dependensi Sistem
 echo -e "${BLUE}[1/5] Menginstal dependensi sistem & compiler...${NC}"
@@ -83,6 +84,13 @@ EOF
 
 chmod +x /usr/local/bin/edl
 
+# Buat symlink juga ke ~/.local/bin jika jalurnya pernah digunakan
+if [ -n "$USER_HOME" ]; then
+    mkdir -p "$USER_HOME/.local/bin"
+    ln -sf /usr/local/bin/edl "$USER_HOME/.local/bin/edl" 2>/dev/null || true
+    chown -h "$REAL_USER:$REAL_USER" "$USER_HOME/.local/bin/edl" 2>/dev/null || true
+fi
+
 # 6. Konfigurasi Izin Akses USB untuk User
 echo -e "${BLUE}[5/5] Mengonfigurasi grup akses USB (plugdev & dialout)...${NC}"
 groupadd -f plugdev
@@ -91,7 +99,8 @@ if [ -n "$REAL_USER" ]; then
     usermod -aG plugdev,dialout "$REAL_USER" 2>/dev/null || true
 fi
 
-# Bersihkan direktori temporary build
+# Bersihkan cache perintah bash & direktori temporary
+hash -r 2>/dev/null || true
 rm -rf "$BUILD_DIR"
 
 # 7. Verifikasi
@@ -102,6 +111,9 @@ if command -v edl &>/dev/null || [ -f "/usr/local/bin/edl" ]; then
     echo -e "${GREEN}======================================================================${NC}"
     echo -e "Lokasi Source   : ${CYAN}/opt/edl${NC}"
     echo -e "Perintah Global : ${CYAN}edl${NC} (Path: ${CYAN}/usr/local/bin/edl${NC})"
+    echo ""
+    echo -e "${YELLOW}Catatan Sesi Terminal:${NC}"
+    echo -e "  Jika sesi terminal lama masih mencari path cache lama, jalankan: ${CYAN}hash -r${NC}"
     echo ""
     echo -e "${YELLOW}Perintah Penggunaan:${NC}"
     echo -e "  - Cek menu bantuan     : ${CYAN}edl --help${NC}"
