@@ -185,7 +185,7 @@ sudo apt install -y adb fastboot python3 python3-pip unzip wget
 
 Kemudian install `edl`:
 
-**[EDL_INSTALL.md](EDL_INSTALL.md)**
+**[INSTALL EDL](EDL_INSTALL.md)**
 
 ---
 
