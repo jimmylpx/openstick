@@ -55,7 +55,7 @@ sudo cp -r . /opt/edl
 
 ## 4. Konfigurasi Binary Global `/usr/local/bin/edl`
 
-Buat file /usr/local/bin/edl:
+Buat file `/usr/local/bin/edl`:
 
 ```bash
 sudo nano /usr/local/bin/edl
