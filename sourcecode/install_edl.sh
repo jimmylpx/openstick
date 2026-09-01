@@ -91,6 +91,10 @@ python3 -m venv /opt/edl
 echo -e "${BLUE}[4/6] Mengunduh Qualcomm Loaders & Firehose Programmer MSM8916...${NC}"
 git clone --depth 1 https://github.com/bkerler/Loaders.git /opt/edl-src/Loaders 2>/dev/null || true
 
+# Symlink Loaders directory agar loader_utils internal dapat menemukan path database
+ln -sf /opt/edl-src/Loaders /opt/edl-src/edlclient/Loaders 2>/dev/null || true
+ln -sf /opt/edl-src/Loaders /opt/edl/Loaders 2>/dev/null || true
+
 # Download Firehose MSM8916.mbn (Universal Snapdragon 410 / MSM8916 Programmer)
 mkdir -p /opt/edl-src/Loaders/qualcomm/MSM8916 /opt/edl-src/Loaders/generic
 FIREHOSE_8916_URL="https://raw.githubusercontent.com/zenlty/Qualcomm-Firehose/master/MSM8916.mbn"
@@ -107,7 +111,15 @@ cp -f /opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn /opt/edl-src/Loaders/pro
 echo -e "${BLUE}[5/6] Membuat wrapper binary global /usr/local/bin/edl...${NC}"
 cat << 'EOF' > /usr/local/bin/edl
 #!/usr/bin/env bash
-exec /opt/edl/bin/python3 /opt/edl-src/edl.py "$@"
+SCRIPT_DIR="/opt/edl-src"
+DEFAULT_LOADER="$SCRIPT_DIR/Loaders/qualcomm/MSM8916/MSM8916.mbn"
+
+# Jika argumen tidak memuat --loader dan loader default tersedia, sertakan otomatis
+if [[ "$*" != *"--loader"* ]] && [ -f "$DEFAULT_LOADER" ]; then
+    exec /opt/edl/bin/python3 "$SCRIPT_DIR/edl.py" --loader="$DEFAULT_LOADER" "$@"
+else
+    exec /opt/edl/bin/python3 "$SCRIPT_DIR/edl.py" "$@"
+fi
 EOF
 chmod 755 /usr/local/bin/edl
 
@@ -120,8 +132,13 @@ if /usr/local/bin/edl -h &>/dev/null || [ -f "/usr/local/bin/edl" ]; then
     echo -e "${GREEN}======================================================================${NC}"
     echo -e "Lokasi Perintah : ${CYAN}/usr/local/bin/edl${NC}"
     echo -e "Lokasi Source   : ${CYAN}/opt/edl-src${NC}"
-    echo -e "Loaders DB      : ${CYAN}/opt/edl-src/Loaders (Termasuk MSM8916 Firehose)${NC}"
-    echo "======================================================================"
+    echo -e "Default Loader  : ${CYAN}/opt/edl-src/Loaders/qualcomm/MSM8916/MSM8916.mbn${NC}"
+    echo "======================================================================${NC}"
+    echo -e "${YELLOW}Perintah Umum EDL:${NC}"
+    echo -e "  - Cek partisi eMMC     : ${CYAN}edl printgpt${NC}"
+    echo -e "  - Backup eMMC penuh    : ${CYAN}edl rf backup.bin${NC}"
+    echo -e "  - Reset ke Fastboot    : ${CYAN}edl reset${NC}"
+    echo -e "======================================================================"
 else
     echo -e "${RED}[X] Instalasi gagal. Silakan periksa pesan kesalahan di atas.${NC}"
     exit 1
