@@ -1,10 +1,10 @@
-# 🛠️ Panduan Instalasi Qualcomm EDL Tool (bkerler/edl) di Linux
+# Panduan Instalasi Qualcomm EDL Tool (bkerler/edl) di Linux
 
 Panduan ini menyediakan **2 metode** untuk menginstal **Qualcomm Sahara / Firehose EDL Tool (`bkerler/edl`)** pada berbagai distro Linux berbasis Debian (Ubuntu, Debian 11/12/13, Linux Mint, Raspberry Pi OS, Kali Linux, dsb.), serta mengonfigurasi perintah `edl` agar dapat dijalankan sebagai binary global dari direktori mana saja.
 
 ---
 
-## ⚡ Metode 1: Instalasi Otomatis (One-Liner Script — Rekomendasi)
+## Metode 1: Instalasi Otomatis (One-Liner Script — Rekomendasi)
 
 Cukup buka terminal di Linux Anda, lalu salin dan jalankan **satu baris perintah** berikut:
 
@@ -16,7 +16,7 @@ curl -sSL https://raw.githubusercontent.com/jimmylpx/openstick/main/edl_autoinst
 
 ---
 
-## 📖 Metode 2: Instalasi Manual (Step-by-Step)
+## Metode 2: Instalasi Manual (Step-by-Step)
 
 Jika Anda ingin melakukan instalasi langkah demi langkah secara manual, ikuti panduan berikut:
 
@@ -111,7 +111,7 @@ edl printgpt
 
 ---
 
-> 💡 **Tips Izin Port USB:**  
+> **Tips Izin Port USB:**  
 > Jika saat menjalankan `edl` muncul kendala izin akses USB (*Permission denied*), pastikan akun user Anda telah dimasukkan ke grup `plugdev` & `dialout`:
 > ```bash
 > sudo usermod -aG plugdev,dialout $USER
