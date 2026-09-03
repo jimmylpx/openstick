@@ -415,10 +415,10 @@ Partition table dan komponen dasar dari paket `base/` akan ditulis ke perangkat.
 
 Installer mengunduh dan memasang firmware Debian yang dipilih:
 
-- `bookworm.zip` (Debian 12 Bookworm Standar - 4G Modem Aktif)
-- `bookworm-modem-disabled.zip` (Debian 12 Bookworm Modem-Disabled - RAM Sekitar ~466MB)
-- `trixie.zip` (Debian 13 Trixie Standar - Testing)
-- `trixie-modem-disabled.zip` (Debian 13 Trixie Modem-Disabled - RAM Sekitar ~466MB)
+- `bookworm.zip` (Debian 12 Bookworm Standar)
+- `bookworm-modem-disabled.zip` (Debian 12 Bookworm Modem-Disabled)
+- `trixie.zip` (Debian 13 Trixie Standar)
+- `trixie-modem-disabled.zip` (Debian 13 Trixie Modem-Disabled)
 
 ### 6. Restore partisi modem
 

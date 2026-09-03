@@ -79,10 +79,10 @@ echo ""
 
 # Pilihan Varian Debian
 echo -e "${YELLOW}Pilih Varian Sistem Operasi Debian yang ingin Anda pasang:${NC}"
-echo "  1) Debian 12 Bookworm (Standar)        [Rekomendasi - 4G Modem Aktif, RAM ~390MB]"
-echo "  2) Debian 12 Bookworm (Modem-Disabled) [Rekomendasi Server/Homelab - RAM Sekitar ~466MB]"
-echo "  3) Debian 13 Trixie (Standar)          [Eksperimental - 4G Modem Aktif]"
-echo "  4) Debian 13 Trixie (Modem-Disabled)   [Eksperimental - RAM Sekitar ~466MB]"
+echo "  1) Debian 12 Bookworm (Standar)"
+echo "  2) Debian 12 Bookworm (Modem-Disabled)"
+echo "  3) Debian 13 Trixie (Standar)"
+echo "  4) Debian 13 Trixie (Modem-Disabled)"
 echo ""
 
 if [ -n "$1" ]; then
@@ -93,16 +93,16 @@ fi
 
 if [ "$CHOICE" = "2" ] || [ "$CHOICE" = "bookworm-modem-disabled" ] || [ "$CHOICE" = "modem-disabled" ]; then
     DISTRO_NAME="bookworm-modem-disabled"
-    DISTRO_TITLE="Debian 12 Bookworm (Modem-Disabled - RAM ~466MB)"
+    DISTRO_TITLE="Debian 12 Bookworm (Modem-Disabled)"
 elif [ "$CHOICE" = "3" ] || [ "$CHOICE" = "trixie" ]; then
     DISTRO_NAME="trixie"
-    DISTRO_TITLE="Debian 13 Trixie (Standar Eksperimental)"
+    DISTRO_TITLE="Debian 13 Trixie (Standar)"
 elif [ "$CHOICE" = "4" ] || [ "$CHOICE" = "trixie-modem-disabled" ]; then
     DISTRO_NAME="trixie-modem-disabled"
-    DISTRO_TITLE="Debian 13 Trixie (Modem-Disabled - RAM ~466MB)"
+    DISTRO_TITLE="Debian 13 Trixie (Modem-Disabled)"
 else
     DISTRO_NAME="bookworm"
-    DISTRO_TITLE="Debian 12 Bookworm (Standar Stabil)"
+    DISTRO_TITLE="Debian 12 Bookworm (Standar)"
 fi
 
 DISTRO_DIR="${ROOT_DIR}/${DISTRO_NAME}"

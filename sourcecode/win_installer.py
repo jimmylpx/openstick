@@ -165,25 +165,25 @@ def main():
 
     # Pilihan Distro
     print_yellow("Pilih Varian Sistem Operasi Debian yang ingin Anda pasang:")
-    print("  1) Debian 12 Bookworm (Standar)        [Rekomendasi - 4G Modem Aktif, RAM ~390MB]")
-    print("  2) Debian 12 Bookworm (Modem-Disabled) [Rekomendasi Server/Homelab - RAM Sekitar ~466MB]")
-    print("  3) Debian 13 Trixie (Standar)          [Eksperimental - 4G Modem Aktif]")
-    print("  4) Debian 13 Trixie (Modem-Disabled)   [Eksperimental - RAM Sekitar ~466MB]")
+    print("  1) Debian 12 Bookworm (Standar)")
+    print("  2) Debian 12 Bookworm (Modem-Disabled)")
+    print("  3) Debian 13 Trixie (Standar)")
+    print("  4) Debian 13 Trixie (Modem-Disabled)")
     print()
 
     choice = input("Masukkan pilihan Anda (1/2/3/4, default: 1): ").strip()
     if choice == "2" or choice == "bookworm-modem-disabled":
         distro_name = "bookworm-modem-disabled"
-        distro_title = "Debian 12 Bookworm (Modem-Disabled - RAM ~466MB)"
+        distro_title = "Debian 12 Bookworm (Modem-Disabled)"
     elif choice == "3" or choice == "trixie":
         distro_name = "trixie"
-        distro_title = "Debian 13 Trixie (Standar Eksperimental)"
+        distro_title = "Debian 13 Trixie (Standar)"
     elif choice == "4" or choice == "trixie-modem-disabled":
         distro_name = "trixie-modem-disabled"
-        distro_title = "Debian 13 Trixie (Modem-Disabled - RAM ~466MB)"
+        distro_title = "Debian 13 Trixie (Modem-Disabled)"
     else:
         distro_name = "bookworm"
-        distro_title = "Debian 12 Bookworm (Standar Stabil)"
+        distro_title = "Debian 12 Bookworm (Standar)"
 
     distro_dir = os.path.join(current_dir, distro_name)
     distro_zip = f"{distro_name}.zip"
