@@ -809,3 +809,18 @@ OpenStick memang kecil, tetapi kemampuannya cukup jauh melampaui fungsi modem US
 Dengan Debian ARM64, perangkat ini bisa dijadikan modem 4G, USB network adapter, Wi-Fi client, hotspot, DNS server, server kecil, atau bahkan dasar untuk proyek Linux yang lebih besar.
 
 Kalau Anda baru pertama kali menggunakan OpenStick, **mulailah dari Debian 12 Bookworm**, buat backup terlebih dahulu, lalu gunakan `sbrmenu` untuk mengatur perangkat setelah berhasil boot.
+
+---
+
+## Log Pembaruan Terkini
+
+- **Pembaruan Daemon ADB (`py_adbd.py`)**:
+  - Penambahan alokasi *Controlling Terminal* (`TIOCSCTTY`) dan penanganan *Job Control* (`tcsetpgrp`) sehingga pesan peringatan `Inappropriate ioctl for device` hilang sepenuhnya.
+  - Perbaikan direktori kerja dan lingkungan sesi pengguna (`/home/user`) untuk menghilangkan error perizinan profil `/root`.
+  - Akses `sudo` dan utilitas interaktif TUI seperti `sbrmenu` kini dapat membaca input terminal secara normal di sesi `adb shell`.
+- **Dukungan Varian Baru (Debian 13 Trixie Modem-Disabled ~466MB RAM)**:
+  - Penambahan varian eksperimental Trixie Modem-Disabled dengan optimasi RAM ~466MB dan integrasi menu TUI yang disesuaikan.
+- **Direct Kernel Boot Pasca-Flash (`installer.sh`)**:
+  - Menggunakan perintah `fastboot continue` pada tahap akhir instalasi sehingga perangkat langsung melompat ke Linux tanpa memerlukan siklus cabut-colok USB (*cold boot*).
+- **Penyempurnaan Wi-Fi Client di `sbrmenu`**:
+  - Deteksi cerdas jalur koneksi pengguna: jika terhubung via Wi-Fi lokal atau Hotspot stik, pemindaian radio dinonaktifkan dan langsung dialihkan ke menu input manual untuk mencegah pemutusan koneksi SSH secara tiba-tiba.
