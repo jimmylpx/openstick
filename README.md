@@ -318,10 +318,6 @@ Jika perangkat belum muncul sebagai mode EDL 9008, **jangan lanjut ke proses fla
 
 Unduh paket flasher dasar `base-generic.zip` yang berisi partition table universal, bootloader komponen, dan skrip installer:
 
-- **Download Link**: [base-generic.zip](https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip)
-
-Ekstrak berkas `base-generic.zip` tersebut ke folder pilihan Anda:
-
 ### Linux
 ```bash
 wget https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip
