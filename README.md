@@ -1,7 +1,6 @@
 # OpenStick Snapdragon 410 (MSM8916) — Debian Linux Suite
 
 ![Linux](https://img.shields.io/badge/OS-Debian%2012%20ARM64-red.svg)
-![Linux](https://img.shields.io/badge/OS-Debian%2013%20ARM64-red.svg)
 ![Kernel](https://img.shields.io/badge/Kernel-Linux%206.12.x--msm8916-blue.svg)
 ![License](https://img.shields.io/badge/License-GPLv3-green.svg)
 ![Release](https://img.shields.io/github/v/release/jimmylpx/openstick)
@@ -18,14 +17,17 @@ Alih-alih menjalankan firmware Android bawaan, perangkat dapat menjalankan **Deb
 
 ## Rilis yang tersedia
 
-Saat ini tersedia dua pilihan firmware:
+Saat ini tersedia tiga pilihan firmware:
 
-| Firmware | Status | Cocok untuk |
-|---|---|---|
-| **Debian 12 Bookworm** | Stabil / direkomendasikan | Pemakaian harian dan server |
-| **Debian 13 Trixie** | Eksperimental | Pengujian dan development |
+| Firmware | Status | Fitur Utama & RAM | Cocok untuk |
+|---|---|---|---|
+| **Debian 12 Bookworm (Standar)** | Stabil / Direkomendasikan | 4G Modem Aktif (RAM ~390MB) | Pemakaian harian dengan kartu SIM 4G |
+| **Debian 12 Bookworm (Modem-Disabled)** | Stabil / High-RAM | Modem Nonaktif (RAM Maksimal ~512MB) | Mini server, Pi-hole, Homelab node, Web server |
+| **Debian 13 Trixie** | Eksperimental | Paket Terbaru (Testing) | Pengujian dan development |
 
-**Bookworm** adalah pilihan yang paling aman jika Anda ingin OpenStick langsung dipakai sebagai server.
+**Debian 12 Bookworm (Standar)** adalah pilihan jika Anda membutuhkan koneksi internet seluler melalui kartu SIM 4G LTE.
+
+**Debian 12 Bookworm (Modem-Disabled)** mengklaim kembali memori modem (~85MB) sehingga kapasitas RAM bebas melonjak hingga **~480MB – 490MB** (mendekati 512MB fisik penuh). Sangat direkomendasikan untuk penggunaan homelab/server di mana koneksi internet diperoleh via Wi-Fi atau Ethernet USB.
 
 **Trixie** menggunakan basis Debian 13 Testing dan ditujukan untuk pengguna yang ingin mencoba paket serta komponen yang lebih baru.
 
@@ -185,7 +187,7 @@ sudo apt install -y adb fastboot python3 python3-pip unzip wget
 
 Kemudian install `edl`:
 
-**[INSTALL EDL](EDL_INSTALL.md)**
+**[EDL_INSTALL.md](EDL_INSTALL.md)**
 
 ---
 
