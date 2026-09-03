@@ -87,7 +87,7 @@ def handle_client(sock):
                         except Exception:
                             pass
                         try:
-                            os.tcsetpgrp(s_fd, os.getpid())
+                            os.tcsetpgrp(s_fd, os.getpgrp())
                         except Exception:
                             pass
                     return _fn
@@ -98,14 +98,23 @@ def handle_client(sock):
                 else:
                     args = ["/bin/bash", "-l"]
 
+                cur_home = "/home/user" if os.path.isdir("/home/user") else "/root"
+                child_env = dict(os.environ)
+                child_env["TERM"] = "xterm-256color"
+                child_env["HOME"] = cur_home
+                child_env["USER"] = "user" if cur_home == "/home/user" else "root"
+                child_env["LOGNAME"] = child_env["USER"]
+                child_env["SHELL"] = "/bin/bash"
+
                 proc = subprocess.Popen(
                     args,
                     stdin=slave_fd,
                     stdout=slave_fd,
                     stderr=slave_fd,
                     close_fds=True,
+                    cwd=cur_home,
                     preexec_fn=setup_controlling_tty(slave_fd),
-                    env=dict(os.environ, TERM="xterm-256color", HOME="/home/user", USER="user", LOGNAME="user")
+                    env=child_env
                 )
                 os.close(slave_fd)
 
