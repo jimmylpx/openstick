@@ -101,9 +101,6 @@ edl printgpt
 ## Langkah Berikutnya
 
 Setelah ADB, Fastboot, dan EDL siap di Windows:
-- Buka folder `base-generic` dan jalankan **`win_installer.py`**:
-  ```cmd
-  python win_installer.py
-  ```
-  untuk memulai proses flashing firmware Debian OpenStick secara otomatis satu-klik langsung dari Windows.
+- Buka folder `base-generic` dan klik dua kali **`installer.bat`** (atau jalankan `python win_installer.py`) untuk memulai proses flashing firmware Debian OpenStick secara otomatis satu-klik langsung dari Windows.
+
 
