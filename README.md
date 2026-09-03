@@ -29,7 +29,7 @@ Saat ini tersedia tiga pilihan firmware:
 
 **(Standar)** adalah pilihan jika Anda membutuhkan koneksi internet seluler melalui kartu SIM 4G LTE.
 
-**Debian 12 Bookworm (Modem-Disabled)** mengklaim kembali memori reserved modem (~85MB) sehingga kapasitas RAM bebas yang dapat digunakan sistem melonjak menjadi **sekitar 466MB** (dari total 512MB fisik, setelah dipotong alokasi TrustZone/hardware dasar). Sangat direkomendasikan untuk penggunaan homelab/server di mana koneksi internet diperoleh via Wi-Fi atau Ethernet USB.
+**(Modem-Disabled)** mengklaim kembali memori reserved modem (~85MB) sehingga kapasitas RAM bebas yang dapat digunakan sistem melonjak menjadi **sekitar 466MB** (dari total 512MB fisik, setelah dipotong alokasi TrustZone/hardware dasar). Sangat direkomendasikan untuk penggunaan homelab/server di mana koneksi internet diperoleh via Wi-Fi atau Ethernet USB.
 
 ---
 
