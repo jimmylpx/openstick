@@ -21,7 +21,7 @@ Alih-alih menjalankan firmware Android bawaan, perangkat dapat menjalankan **Deb
 Saat ini tersedia tiga pilihan firmware:
 
 | Firmware | Fitur Utama & RAM |
-|---|---|---|
+|---|---|
 | **Debian 12 Bookworm (Standar)** | 4G Modem Aktif (RAM ~390MB) |
 | **Debian 12 Bookworm (Modem-Disabled)** | Modem Nonaktif (RAM Sekitar ~466MB) |
 | **Debian 13 Trixie** | 4G Modem Aktif (RAM ~390MB) |
