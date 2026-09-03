@@ -403,7 +403,8 @@ Installer mengunduh dan memasang firmware Debian yang dipilih:
 
 - `bookworm.zip` (Debian 12 Bookworm Standar - 4G Modem Aktif)
 - `bookworm-modem-disabled.zip` (Debian 12 Bookworm Modem-Disabled - RAM Sekitar ~466MB)
-- `trixie.zip` (Debian 13 Trixie - Testing)
+- `trixie.zip` (Debian 13 Trixie Standar - Testing)
+- `trixie-modem-disabled.zip` (Debian 13 Trixie Modem-Disabled - RAM Sekitar ~466MB)
 
 ### 6. Restore partisi modem
 

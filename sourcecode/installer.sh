@@ -81,13 +81,14 @@ echo ""
 echo -e "${YELLOW}Pilih Varian Sistem Operasi Debian yang ingin Anda pasang:${NC}"
 echo "  1) Debian 12 Bookworm (Standar)        [Rekomendasi - 4G Modem Aktif, RAM ~390MB]"
 echo "  2) Debian 12 Bookworm (Modem-Disabled) [Rekomendasi Server/Homelab - RAM Sekitar ~466MB]"
-echo "  3) Debian 13 Trixie                    [Eksperimental - Belum Stabil / Tahap Uji Coba]"
+echo "  3) Debian 13 Trixie (Standar)          [Eksperimental - 4G Modem Aktif]"
+echo "  4) Debian 13 Trixie (Modem-Disabled)   [Eksperimental - RAM Sekitar ~466MB]"
 echo ""
 
 if [ -n "$1" ]; then
     CHOICE="$1"
 else
-    read -r -p "Masukkan pilihan Anda (1/2/3, default: 1): " CHOICE
+    read -r -p "Masukkan pilihan Anda (1/2/3/4, default: 1): " CHOICE
 fi
 
 if [ "$CHOICE" = "2" ] || [ "$CHOICE" = "bookworm-modem-disabled" ] || [ "$CHOICE" = "modem-disabled" ]; then
@@ -95,7 +96,10 @@ if [ "$CHOICE" = "2" ] || [ "$CHOICE" = "bookworm-modem-disabled" ] || [ "$CHOIC
     DISTRO_TITLE="Debian 12 Bookworm (Modem-Disabled - RAM ~466MB)"
 elif [ "$CHOICE" = "3" ] || [ "$CHOICE" = "trixie" ]; then
     DISTRO_NAME="trixie"
-    DISTRO_TITLE="Debian 13 Trixie (Eksperimental)"
+    DISTRO_TITLE="Debian 13 Trixie (Standar Eksperimental)"
+elif [ "$CHOICE" = "4" ] || [ "$CHOICE" = "trixie-modem-disabled" ]; then
+    DISTRO_NAME="trixie-modem-disabled"
+    DISTRO_TITLE="Debian 13 Trixie (Modem-Disabled - RAM ~466MB)"
 else
     DISTRO_NAME="bookworm"
     DISTRO_TITLE="Debian 12 Bookworm (Standar Stabil)"
@@ -365,11 +369,11 @@ done
 echo ""
 echo -e "${CYAN}======================================================================${NC}"
 echo -e "${GREEN}${BOLD}   PROSES FLASHING SELESAI! ME-REBOOT PERANGKAT KE LINUX...           ${NC}"
-echo -e "${CYAN}======================================================================${NC}"
-fastboot reboot
+echo -e "${BLUE}[*] Memulai boot ke sistem Linux (Direct Jump / Fastboot Continue)...${NC}"
+fastboot continue 2>/dev/null || fastboot reboot
 
 echo ""
-echo -e "${GREEN}Perangkat sedang me-reboot ke sistem ${DISTRO_TITLE}.${NC}"
+echo -e "${GREEN}Perangkat sedang booting ke sistem ${DISTRO_TITLE}.${NC}"
 echo ""
 echo -e "${YELLOW}======================================================================${NC}"
 echo -e "${YELLOW}${BOLD}⚠️  PENTING (POWER CYCLE USB):${NC}"

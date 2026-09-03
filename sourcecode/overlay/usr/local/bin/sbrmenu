@@ -152,89 +152,157 @@ while true; do
             ;;
 
         "2")
-            # --- MENU 2: AKTIFKAN WIFI CLIENT (AUTO SCAN + RNDIS AWARE) ---
+            # --- MENU 2: AKTIFKAN WIFI CLIENT (AUTO-FALLBACK DARURAT) ---
             
-            # Deteksi apakah user terkoneksi via RNDIS (192.168.100.*)
+            # Deteksi apakah user terkoneksi via Wi-Fi vs RNDIS / ADB / Serial
             CLIENT_IP=$(echo "$SSH_CLIENT" | awk '{print $1}')
-            IS_RNDIS=0
-            if [[ "$CLIENT_IP" == 192.168.100.* ]] || ip neigh show dev br0 2>/dev/null | grep -q "192.168.100." || ip addr show dev br0 2>/dev/null | grep -q "192.168.100."; then
-                if [[ "$CLIENT_IP" == 192.168.100.* ]]; then
-                    IS_RNDIS=1
+            IS_WIFI_CLIENT=0
+            
+            if [ -n "$CLIENT_IP" ]; then
+                CLIENT_MAC=$(ip neigh show to "$CLIENT_IP" dev br0 2>/dev/null | awk '{print $5}' | head -n 1)
+                if [ -z "$CLIENT_MAC" ]; then
+                    CLIENT_MAC=$(awk -v ip="$CLIENT_IP" '$1==ip {print $4}' /proc/net/arp 2>/dev/null | head -n 1)
+                fi
+                
+                # Cek stasiun Wi-Fi aktif atau FDB bridge port wlan0
+                if [ -n "$CLIENT_MAC" ] && iw dev wlan0 station dump 2>/dev/null | grep -qi "$CLIENT_MAC"; then
+                    IS_WIFI_CLIENT=1
+                elif [ -n "$CLIENT_MAC" ] && bridge fdb show dev wlan0 2>/dev/null | grep -qi "$CLIENT_MAC"; then
+                    IS_WIFI_CLIENT=1
+                elif [ "$CLIENT_IP" != "192.168.100.2" ] && ! bridge fdb show dev usb0 2>/dev/null | grep -qi "$CLIENT_MAC"; then
+                    if iw dev wlan0 info 2>/dev/null | grep -qi "type AP"; then
+                        IS_WIFI_CLIENT=1
+                    fi
                 fi
             fi
 
-            while true; do
-                # 1. Pindai jaringan Wi-Fi sekitar
-                SCAN_TMP=$(mktemp)
-                {
-                    echo -e "XXX\n30\nMengaktifkan pemindaian Wi-Fi...\nXXX"
-                    nmcli dev wifi rescan ifname wlan0 >/dev/null 2>&1 || true
-                    echo -e "XXX\n70\nMengambil daftar SSID sekitar...\nXXX"
-                    sleep 1
-                    nmcli -t -f SSID,SIGNAL,SECURITY dev wifi list ifname wlan0 > "$SCAN_TMP" 2>/dev/null || true
-                    echo -e "XXX\n100\nSelesai!\nXXX"
-                } | whiptail --title "Memindai Wi-Fi" --gauge "Sedang memindai jaringan Wi-Fi di sekitar Anda..." 8 60 0
+            # KONDISI 1: User terkoneksi via Wi-Fi (Hotspot/Lokal)
+            # Hanya sediakan input manual agar koneksi SSH tidak terputus saat memindai
+            if [ $IS_WIFI_CLIENT -eq 1 ]; then
+                whiptail --title "Peringatan Koneksi Wi-Fi" \
+                    --msgbox "Perangkat mendeteksi Anda terhubung melalui jaringan Wi-Fi (IP: $CLIENT_IP).\n\nUntuk menjaga sesi SSH tidak terputus saat radio memindai, fitur pemindaian otomatis dinonaktifkan.\n\nSilakan masukkan SSID dan Password Wi-Fi tujuan secara manual pada layar berikutnya." 13 65
 
-                # 2. Parsing daftar SSID unik dan tidak kosong
-                MENU_ITEMS=()
-                while IFS=':' read -r S_SSID S_SIGNAL S_SEC; do
-                    [ -z "$S_SSID" ] && continue
-                    [ "$S_SSID" = "--" ] && continue
-                    ALREADY=0
-                    for item in "${MENU_ITEMS[@]}"; do
-                        if [ "$item" = "$S_SSID" ]; then
-                            ALREADY=1
-                            break
-                        fi
-                    done
-                    [ $ALREADY -eq 1 ] && continue
-                    
-                    SEC_LABEL="${S_SEC:-OPEN}"
-                    MENU_ITEMS+=("$S_SSID" "[$S_SIGNAL% | $SEC_LABEL]")
-                done < "$SCAN_TMP"
-                rm -f "$SCAN_TMP"
-
-                # Tambahkan opsi Manual dan Rescan
-                MENU_ITEMS+=("__MANUAL__" "[+ Input SSID Manual / Hidden]")
-                MENU_ITEMS+=("__RESCAN__" "[* Pindai Ulang Wi-Fi]")
-
-                CHOSEN_SSID=$(whiptail --title "Pilih Jaringan Wi-Fi Sekitar" \
-                    --menu "Pilih Wi-Fi yang ingin dihubungkan (Gunakan panah & Enter):" 20 70 10 \
-                    "${MENU_ITEMS[@]}" \
+                TARGET_SSID=$(whiptail --title "Input Wi-Fi Manual" \
+                    --inputbox "Masukkan nama SSID Wi-Fi tujuan (Perhatikan huruf besar/kecil):" 10 65 \
                     3>&1 1>&2 2>&3)
+                [ $? != 0 ] || [ -z "$TARGET_SSID" ] && continue
 
-                [ $? != 0 ] && break
-
-                if [ "$CHOSEN_SSID" = "__RESCAN__" ]; then
-                    continue
-                elif [ "$CHOSEN_SSID" = "__MANUAL__" ]; then
-                    TARGET_SSID=$(whiptail --title "Input Wi-Fi Manual" \
-                        --inputbox "Masukkan nama SSID Wi-Fi tujuan (Perhatikan huruf besar/kecil):" 10 65 \
-                        3>&1 1>&2 2>&3)
-                    [ $? != 0 ] || [ -z "$TARGET_SSID" ] && continue
-                else
-                    TARGET_SSID="$CHOSEN_SSID"
-                fi
-
-                # 3. Minta password
                 WIFI_PASS=$(whiptail --title "Password Wi-Fi" \
                     --passwordbox "Masukkan Password untuk Wi-Fi '$TARGET_SSID':\n(Kosongkan jika jaringan terbuka/open)" 10 65 \
                     3>&1 1>&2 2>&3)
-
                 [ $? != 0 ] && continue
 
-                # 4. Konfirmasi Eksekusi berdasarkan jalur koneksi (RNDIS vs WiFi)
-                if [ $IS_RNDIS -eq 1 ]; then
-                    CONFIRM_MSG="Perangkat mendeteksi Anda terhubung via USB RNDIS (IP: $CLIENT_IP).\n\n- Internet dari Wi-Fi '$TARGET_SSID' akan langsung disalurkan ke PC Anda (USB Wi-Fi Dongle).\n- Sesi SSH ini TIDAK AKAN TERPUTUS.\n\nLanjutkan menghubungkan ke '$TARGET_SSID'?"
-                else
-                    CONFIRM_MSG="PERINGATAN: Anda terhubung via Wi-Fi.\n\n- Sesi SSH Anda AKAN SEGERA TERPUTUS saat perangkat berganti jaringan.\n- Proses berjalan otomatis di latar belakang.\n- Jika gagal dalam 45 detik, sistem otomatis membuat Hotspot darurat (SSID: 4G-UFI-XX, Pass: 1234567890).\n\nLanjutkan menghubungkan ke '$TARGET_SSID'?"
-                fi
+                CONFIRM_MSG="PERINGATAN KONEKSI WI-FI:\n\n- Sesi SSH Anda AKAN SEGERA TERPUTUS saat perangkat mencoba terhubung ke '$TARGET_SSID'.\n- Proses berjalan otomatis di latar belakang.\n- Jika gagal dalam 45 detik, sistem otomatis membuat Hotspot darurat kembali (SSID: 4G-UFI-XX, Pass: 1234567890).\n\nLanjutkan menghubungkan ke '$TARGET_SSID'?"
 
-                whiptail --title "Konfirmasi Koneksi Wi-Fi" --yesno "$CONFIRM_MSG" 16 70
+                whiptail --title "Konfirmasi Koneksi Wi-Fi" --yesno "$CONFIRM_MSG" 15 70
                 [ $? != 0 ] && continue
 
-                # 5. Background connection script
-                cat << 'INNER_EOF' > /tmp/wifi_connect_bg.sh
+            else
+                # KONDISI 2: User terkoneksi via USB RNDIS, ADB, atau Serial
+                # Nonaktifkan Hotspot sementara agar radio bebas scan dan SSID sendiri tidak muncul di daftar
+                {
+                    echo -e "XXX\n20\nMenonaktifkan Hotspot sementara agar radio bebas memindai...\nXXX"
+                    nmcli con down "hotspot" >/dev/null 2>&1 || nmcli con down "Hotspot" >/dev/null 2>&1 || true
+                    sleep 2
+                    echo -e "XXX\n100\nHotspot dinonaktifkan sementara (Sesi RNDIS/ADB tetap aktif).\nXXX"
+                    sleep 1
+                } | whiptail --title "Persiapan Pemindaian" --gauge "Mempersiapkan wlan0 untuk pemindaian Wi-Fi..." 8 65 0
+
+                HOTSPOT_DISABLED_BY_US=1
+
+                while true; do
+                    # 1. Pindai jaringan Wi-Fi sekitar
+                    SCAN_TMP=$(mktemp)
+                    {
+                        echo -e "XXX\n30\nMengaktifkan pemindaian Wi-Fi sekitar...\nXXX"
+                        nmcli dev wifi rescan ifname wlan0 >/dev/null 2>&1 || true
+                        echo -e "XXX\n70\nMengambil daftar SSID sekitar...\nXXX"
+                        sleep 2
+                        nmcli -t -f SSID,SIGNAL,SECURITY dev wifi list ifname wlan0 > "$SCAN_TMP" 2>/dev/null || true
+                        echo -e "XXX\n100\nSelesai!\nXXX"
+                    } | whiptail --title "Memindai Wi-Fi" --gauge "Sedang memindai jaringan Wi-Fi di sekitar Anda..." 8 60 0
+
+                    # 2. Parsing daftar SSID unik, tidak kosong, dan BUKAN SSID Hotspot sendiri
+                    MENU_ITEMS=()
+                    while IFS=':' read -r S_SSID S_SIGNAL S_SEC; do
+                        [ -z "$S_SSID" ] && continue
+                        [ "$S_SSID" = "--" ] && continue
+                        [[ "$S_SSID" == 4G-UFI-* ]] && continue
+                        [[ "$S_SSID" == "WiFi_Saya" ]] && continue
+                        
+                        ALREADY=0
+                        for item in "${MENU_ITEMS[@]}"; do
+                            if [ "$item" = "$S_SSID" ]; then
+                                ALREADY=1
+                                break
+                            fi
+                        done
+                        [ $ALREADY -eq 1 ] && continue
+                        
+                        SEC_LABEL="${S_SEC:-OPEN}"
+                        MENU_ITEMS+=("$S_SSID" "[$S_SIGNAL% | $SEC_LABEL]")
+                    done < "$SCAN_TMP"
+                    rm -f "$SCAN_TMP"
+
+                    # Tambahkan opsi Manual dan Rescan
+                    MENU_ITEMS+=("__MANUAL__" "[+ Input SSID Manual / Hidden]")
+                    MENU_ITEMS+=("__RESCAN__" "[* Pindai Ulang Wi-Fi]")
+
+                    CHOSEN_SSID=$(whiptail --title "Pilih Jaringan Wi-Fi Sekitar" \
+                        --menu "Pilih Wi-Fi yang ingin dihubungkan (Gunakan panah & Enter):" 20 70 10 \
+                        "${MENU_ITEMS[@]}" \
+                        3>&1 1>&2 2>&3)
+
+                    # Jika user membatalkan (Cancel), pulihkan Hotspot!
+                    if [ $? != 0 ]; then
+                        nmcli con up "hotspot" >/dev/null 2>&1 || nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                        HOTSPOT_DISABLED_BY_US=0
+                        break
+                    fi
+
+                    if [ "$CHOSEN_SSID" = "__RESCAN__" ]; then
+                        continue
+                    elif [ "$CHOSEN_SSID" = "__MANUAL__" ]; then
+                        TARGET_SSID=$(whiptail --title "Input Wi-Fi Manual" \
+                            --inputbox "Masukkan nama SSID Wi-Fi tujuan (Perhatikan huruf besar/kecil):" 10 65 \
+                            3>&1 1>&2 2>&3)
+                        if [ $? != 0 ] || [ -z "$TARGET_SSID" ]; then
+                            nmcli con up "hotspot" >/dev/null 2>&1 || nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                            HOTSPOT_DISABLED_BY_US=0
+                            continue
+                        fi
+                    else
+                        TARGET_SSID="$CHOSEN_SSID"
+                    fi
+
+                    # 3. Minta password
+                    WIFI_PASS=$(whiptail --title "Password Wi-Fi" \
+                        --passwordbox "Masukkan Password untuk Wi-Fi '$TARGET_SSID':\n(Kosongkan jika jaringan terbuka/open)" 10 65 \
+                        3>&1 1>&2 2>&3)
+
+                    if [ $? != 0 ]; then
+                        nmcli con up "hotspot" >/dev/null 2>&1 || nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                        HOTSPOT_DISABLED_BY_US=0
+                        continue
+                    fi
+
+                    CONFIRM_MSG="Perangkat mendeteksi Anda terhubung via USB RNDIS/ADB/Serial.\n\n- Hotspot telah dinonaktifkan agar radio fokus ke Wi-Fi '$TARGET_SSID'.\n- Internet dari Wi-Fi '$TARGET_SSID' akan langsung disalurkan ke PC Anda (USB Wi-Fi Dongle).\n- Sesi SSH/ADB via USB RNDIS ini TIDAK AKAN TERPUTUS.\n\nLanjutkan menghubungkan ke '$TARGET_SSID'?"
+
+                    whiptail --title "Konfirmasi Koneksi Wi-Fi" --yesno "$CONFIRM_MSG" 16 70
+                    if [ $? != 0 ]; then
+                        nmcli con up "hotspot" >/dev/null 2>&1 || nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                        HOTSPOT_DISABLED_BY_US=0
+                        continue
+                    fi
+
+                    break
+                done
+
+                [ -z "$TARGET_SSID" ] && continue
+            fi
+
+            # 5. Background connection script (dengan fallback darurat)
+            cat << 'INNER_EOF' > /tmp/wifi_connect_bg.sh
 #!/bin/bash
 TARGET="$1"
 PASS="$2"
@@ -273,19 +341,17 @@ else
     systemctl restart NetworkManager
 fi
 INNER_EOF
-                chmod +x /tmp/wifi_connect_bg.sh
-                nohup /tmp/wifi_connect_bg.sh "$TARGET_SSID" "$WIFI_PASS" </dev/null >/dev/null 2>&1 &
-                disown
+            chmod +x /tmp/wifi_connect_bg.sh
+            nohup /tmp/wifi_connect_bg.sh "$TARGET_SSID" "$WIFI_PASS" </dev/null >/dev/null 2>&1 &
+            disown
 
-                if [ $IS_RNDIS -eq 1 ]; then
-                    whiptail --title "Menghubungkan" --msgbox "Perintah telah dikirim!\n\nPerangkat sedang menghubungkan ke Wi-Fi '$TARGET_SSID'.\nFungsi internet USB Wi-Fi Dongle akan aktif dalam beberapa detik." 12 60
-                else
-                    whiptail --title "Proses Berjalan!" --msgbox "Perintah telah dikirim ke latar belakang.\n\nJika Anda meremote melalui Wi-Fi, terminal ini akan terputus sebentar lagi.\n\nSilakan tunggu ~45 detik. Jika gagal, hubungkan kembali ke hotspot '4G-UFI-XX' (Pass: 1234567890)." 13 65
-                    clear
-                    exit 0
-                fi
-                break
-            done
+            if [ $IS_WIFI_CLIENT -eq 1 ]; then
+                whiptail --title "Proses Berjalan!" --msgbox "Perintah telah dikirim ke latar belakang.\n\nKarena Anda terhubung via Wi-Fi, koneksi terminal ini akan terputus sebentar lagi.\n\nSilakan tunggu ~45 detik. Jika gagal terhubung ke Wi-Fi tujuan, sambungkan kembali ke Hotspot darurat '4G-UFI-XX' (Pass: 1234567890)." 14 65
+                clear
+                exit 0
+            else
+                whiptail --title "Menghubungkan" --msgbox "Perintah telah dikirim!\n\nPerangkat sedang menghubungkan ke Wi-Fi '$TARGET_SSID'.\nFungsi internet USB Wi-Fi Dongle akan aktif dalam beberapa detik tanpa memutus sesi RNDIS Anda." 12 60
+            fi
             ;;
 
         "3")
