@@ -1,0 +1,128 @@
+#!/bin/bash
+# ==============================================================================
+# openstick-wifi-watchdog
+# Smart Wi-Fi & Hotspot Supervisor for OpenStick (Snapdragon 410 / MSM8916)
+#
+# 1. If disconnected from client Wi-Fi for >= 60s -> starts fallback Hotspot.
+# 2. If Hotspot running & NO user logged in (SSH/ADB) for >= 60s:
+#    - attempts auto-reconnection to last known client Wi-Fi.
+#    - if fails, restarts Hotspot and cycle repeats.
+# 3. If user IS logged in -> keeps Hotspot active indefinitely.
+# ==============================================================================
+
+STATE_DIR="/etc/openstick"
+mkdir -p "$STATE_DIR"
+LAST_WIFI_FILE="$STATE_DIR/last_wifi_profile"
+
+OFFLINE_COUNT=0
+HOTSPOT_IDLE_COUNT=0
+CHECK_INTERVAL=5
+
+has_active_user() {
+    # Check active SSH sessions (port 22)
+    if ss -tn '( sport = :22 or dport = :22 )' 2>/dev/null | grep -q "ESTAB"; then
+        return 0
+    fi
+    # Check active who/w sessions
+    if who 2>/dev/null | grep -qv '^$'; then
+        return 0
+    fi
+    # Check active ADB shell processes
+    if pgrep -f "py_adbd.py" >/dev/null 2>&1; then
+        local adb_pid
+        adb_pid=$(pgrep -f "py_adbd.py" | head -n 1)
+        if [ -n "$adb_pid" ] && pgrep -P "$adb_pid" >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
+get_active_wifi_client() {
+    local active_conns
+    active_conns=$(nmcli -t -f NAME,TYPE con show --active 2>/dev/null)
+    echo "$active_conns" | while IFS=':' read -r c_name c_type; do
+        if [ "$c_type" = "802-11-wireless" ] || [ "$c_type" = "wifi" ]; then
+            if [ "$c_name" != "hotspot" ] && [ "$c_name" != "Hotspot" ]; then
+                echo "$c_name"
+                return 0
+            fi
+        fi
+    done
+}
+
+is_hotspot_active() {
+    nmcli -t -f NAME,TYPE con show --active 2>/dev/null | grep -Eiq "^(hotspot|Hotspot):(802-11-wireless|wifi)"
+}
+
+ensure_hotspot_profile() {
+    if ! nmcli con show "hotspot" >/dev/null 2>&1; then
+        nmcli con add type wifi ifname wlan0 master br0 con-name hotspot ssid "4G-UFI-XX" >/dev/null 2>&1 || true
+        nmcli con modify hotspot 802-11-wireless.mode ap 802-11-wireless.band bg 802-11-wireless.channel 1 >/dev/null 2>&1 || true
+        nmcli con modify hotspot wifi-sec.key-mgmt wpa-psk wifi-sec.psk "1234567890" >/dev/null 2>&1 || true
+        nmcli con modify hotspot wifi-sec.proto rsn wifi-sec.pairwise ccmp wifi-sec.group ccmp wifi-sec.pmf disable >/dev/null 2>&1 || true
+        nmcli con modify hotspot connection.autoconnect yes connection.autoconnect-priority 100 >/dev/null 2>&1 || true
+        nmcli con modify hotspot ipv4.method disabled ipv6.method disabled >/dev/null 2>&1 || true
+    fi
+}
+
+# Wait initially on boot for NetworkManager to attempt auto-connecting
+sleep 15
+
+while true; do
+    client_conn=$(get_active_wifi_client)
+
+    if [ -n "$client_conn" ]; then
+        # Wi-Fi Client is active! Record profile
+        echo "$client_conn" > "$LAST_WIFI_FILE"
+        OFFLINE_COUNT=0
+        HOTSPOT_IDLE_COUNT=0
+    elif is_hotspot_active; then
+        # Hotspot is active
+        OFFLINE_COUNT=0
+        
+        if has_active_user; then
+            # User is logged in, hold hotspot indefinitely
+            HOTSPOT_IDLE_COUNT=0
+        else
+            HOTSPOT_IDLE_COUNT=$((HOTSPOT_IDLE_COUNT + CHECK_INTERVAL))
+            if [ $HOTSPOT_IDLE_COUNT -ge 60 ] && [ -f "$LAST_WIFI_FILE" ]; then
+                last_target=$(head -n 1 "$LAST_WIFI_FILE" 2>/dev/null | tr -d '\r\n')
+                if [ -n "$last_target" ] && nmcli con show "$last_target" >/dev/null 2>&1; then
+                    logger -t openstick-watchdog "No user active for 60s. Trying to reconnect to Wi-Fi '$last_target'..."
+                    
+                    # Stop hotspot temporarily
+                    timeout 5 nmcli con down "hotspot" >/dev/null 2>&1 || timeout 5 nmcli con down "Hotspot" >/dev/null 2>&1 || true
+                    sleep 2
+                    
+                    # Attempt connection
+                    timeout 25 nmcli con up "$last_target" >/dev/null 2>&1 || true
+                    sleep 3
+                    
+                    new_client=$(get_active_wifi_client)
+                    if [ -z "$new_client" ]; then
+                        logger -t openstick-watchdog "Reconnect to '$last_target' failed. Restoring Hotspot."
+                        ensure_hotspot_profile
+                        timeout 8 nmcli con up "hotspot" >/dev/null 2>&1 || timeout 8 nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                    else
+                        logger -t openstick-watchdog "Successfully reconnected to Wi-Fi '$last_target'!"
+                    fi
+                fi
+                HOTSPOT_IDLE_COUNT=0
+            fi
+        fi
+    else
+        # Disconnected state
+        HOTSPOT_IDLE_COUNT=0
+        OFFLINE_COUNT=$((OFFLINE_COUNT + CHECK_INTERVAL))
+        
+        if [ $OFFLINE_COUNT -ge 60 ]; then
+            logger -t openstick-watchdog "Disconnected for >= 60s. Starting fallback Hotspot!"
+            ensure_hotspot_profile
+            timeout 8 nmcli con up "hotspot" >/dev/null 2>&1 || timeout 8 nmcli con up "Hotspot" >/dev/null 2>&1 || true
+            OFFLINE_COUNT=0
+        fi
+    fi
+
+    sleep $CHECK_INTERVAL
+done

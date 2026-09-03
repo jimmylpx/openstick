@@ -1,0 +1,15 @@
+[Unit]
+Description=OpenStick Smart Wi-Fi & Hotspot Supervisor (Watchdog)
+After=network.target NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/openstick-wifi-watchdog
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

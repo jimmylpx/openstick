@@ -221,6 +221,13 @@ while true; do
                 } | whiptail --title "Persiapan Pemindaian" --gauge "Mempersiapkan wlan0 untuk pemindaian Wi-Fi..." 8 65 0
 
                 HOTSPOT_DISABLED_BY_US=1
+                restore_hotspot_emergency() {
+                    if [ "$HOTSPOT_DISABLED_BY_US" = "1" ]; then
+                        HOTSPOT_DISABLED_BY_US=0
+                        timeout 6 nmcli con up "hotspot" >/dev/null 2>&1 || timeout 6 nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                    fi
+                }
+                trap restore_hotspot_emergency EXIT INT TERM HUP
 
                 while true; do
                     # 1. Pindai jaringan Wi-Fi sekitar
@@ -314,6 +321,8 @@ while true; do
 
                     break
                 done
+
+                trap - EXIT INT TERM HUP
 
                 [ -z "$TARGET_SSID" ] && continue
             fi
