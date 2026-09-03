@@ -205,6 +205,21 @@ yay -S edl-git
 
 ---
 
+## Windows (10 / 11)
+
+Di Windows, Anda dapat menginstal seluruh tool pendukung (**ADB, Fastboot, Python, dan Qualcomm EDL**) secara otomatis menggunakan satu skrip PowerShell:
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; iex (irm https://raw.githubusercontent.com/jimmylpx/openstick/main/install_adb_fastboot_edl.ps1)
+```
+
+Panduan lengkap instalasi dan konfigurasi driver WinUSB Zadig:  
+👉 **[ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md](ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md)**
+
+Setelah tool terpasang, Anda dapat langsung menjalankan **`installer.bat`** (terdapat di dalam `base-generic.zip`) untuk melakukan flashing OpenStick satu-klik dari Windows.
+
+---
+
 # Instalasi
 
 Proses instalasi terdiri dari tiga bagian utama:
