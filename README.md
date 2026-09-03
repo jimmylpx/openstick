@@ -214,9 +214,9 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManage
 ```
 
 Panduan lengkap instalasi dan konfigurasi driver WinUSB Zadig:  
-👉 **[ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md](ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md)**
+**[ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md](ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md)**
 
-Setelah tool terpasang, Anda dapat langsung menjalankan **`installer.bat`** (terdapat di dalam `base-generic.zip`) untuk melakukan flashing OpenStick satu-klik dari Windows.
+Setelah tool terpasang, Anda dapat langsung menjalankan **`installer.bat`** (terdapat di dalam **[base-generic.zip](https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip)**) untuk melakukan flashing OpenStick satu-klik dari Windows.
 
 ---
 
