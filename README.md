@@ -216,8 +216,6 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManage
 Panduan lengkap instalasi dan konfigurasi driver WinUSB Zadig:  
 👉 **[ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md](ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md)**
 
-Setelah tool terpasang, Anda dapat langsung mengeklik dua kali **`installer.bat`** (atau menjalankan `python win_installer.py`) yang terdapat di dalam **[base-generic.zip](https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip)** untuk melakukan flashing OpenStick satu-klik secara otomatis dari Windows.
-
 ---
 
 # Instalasi
@@ -225,8 +223,8 @@ Setelah tool terpasang, Anda dapat langsung mengeklik dua kali **`installer.bat`
 Proses instalasi terdiri dari tiga bagian utama:
 
 1. Masuk ke Qualcomm EDL 9008
-2. Menyiapkan paket flasher
-3. Menjalankan installer
+2. Mengunduh paket flasher (`base-generic.zip`)
+3. Menjalankan installer (tersedia versi Linux dan Windows)
 
 Sebelum mulai, pastikan Anda sudah mengetahui tipe board OpenStick yang digunakan.
 
@@ -310,59 +308,64 @@ Jika berhasil, Anda akan melihat perangkat Qualcomm dengan USB ID:
 05c6:9008 Qualcomm, Inc. Gobi Wireless Modem (QDL mode)
 ```
 
-Jika perangkat belum muncul sebagai `05c6:9008`, **jangan lanjut ke proses flashing**.
+Di Windows, periksa di **Device Manager** pada bagian *Ports (COM & LPT)* atau *Universal Serial Bus devices* bahwa perangkat terdeteksi sebagai `Qualcomm HS-USB QDLoader 9008` atau `QHSUSB__BULK`.
+
+Jika perangkat belum muncul sebagai mode EDL 9008, **jangan lanjut ke proses flashing**.
 
 ---
 
-# 2. Download Base Flasher
+## 2. Download Base Flasher
 
-Download paket base:
+Unduh paket flasher dasar `base-generic.zip` yang berisi partition table universal, bootloader komponen, dan skrip installer:
 
+- **Download Link**: [base-generic.zip](https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip)
+
+Ekstrak berkas `base-generic.zip` tersebut ke folder pilihan Anda:
+
+### Linux
 ```bash
 wget https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip
-```
-
-Extract:
-
-```bash
 unzip base-generic.zip -d base
-```
-
-Masuk ke folder:
-
-```bash
 cd base
-```
-
-Buat installer menjadi executable:
-
-```bash
 chmod +x installer.sh
 ```
 
+### Windows
+1. Unduh berkas [base-generic.zip](https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip).
+2. Klik kanan berkas zip $\rightarrow$ **Extract All...** ke sebuah folder (misalnya `base-generic`).
+3. Buka folder hasil ekstraksi tersebut di File Explorer.
+
 ---
 
-# 3. Jalankan Installer
+## 3. Jalankan Installer
 
-Jalankan:
+Pilih instruksi yang sesuai dengan sistem operasi yang Anda gunakan:
+
+### 🐧 Menggunakan Linux
+
+Jalankan skrip installer:
 
 ```bash
 ./installer.sh
 ```
 
-Untuk UZ801 yang masuk EDL menggunakan:
-
-```bash
-adb reboot edl
-```
-
-disarankan menjalankan installer dengan `sudo`:
+Untuk UZ801 yang masuk EDL menggunakan `adb reboot edl`, disarankan menjalankan installer dengan `sudo`:
 
 ```bash
 sudo ./installer.sh
 ```
 
-Hal ini diperlukan pada beberapa sistem agar `edl` mendapatkan akses penuh ke USB Qualcomm EDL.
+Installer akan memandu Anda memilih varian Debian yang ingin dipasang (Bookworm / Bookworm Modem-Disabled / Trixie / Trixie Modem-Disabled).
+
+### 🪟 Menggunakan Windows
+
+Di dalam folder hasil ekstraksi `base-generic`:
+
+1. Pastikan perangkat OpenStick sudah terhubung dalam mode EDL 9008.
+2. Klik dua kali pada berkas **`installer.bat`** (atau jalankan `python win_installer.py` melalui Terminal / CMD).
+3. Jendela installer interaktif akan terbuka secara otomatis dan menampilkan menu pilihan varian sistem operasi Debian.
+4. Masukkan nomor pilihan varian Anda (1, 2, 3, atau 4) lalu tekan **Enter**.
+5. Installer akan mengunduh firmware Debian secara otomatis, membackup partisi asli, mem-flash sistem, dan mereboot perangkat langsung ke Linux.
 
 ---
 
@@ -427,16 +430,13 @@ Partisi modem dari hasil backup sebelumnya dikembalikan ke perangkat agar kalibr
 
 ### 7. Reboot
 
-Setelah semuanya selesai, OpenStick akan reboot otomatis ke Debian Linux.
-
-> **⚠️ Catatan Penting Pasca-Flash (Power Cycle):**  
-> Pada banyak tipe modem USB, pemutusan arus 5V tidak terjadi secara otomatis saat perintah reboot dijalankan. **Jika dalam waktu 1 menit perangkat tidak kunjung boot** (LED indikator tidak berkedip atau belum terdeteksi di jaringan/USB), **segera lakukan cabut dan colok kembali stik USB Anda** ke port komputer agar chipset melakukan booting ulang perangkat keras (*cold boot*).
+Setelah semuanya selesai, OpenStick akan reboot otomatis langsung ke Debian Linux.
 
 ---
 
 # Setelah Instalasi
 
-Boot pertama memerlukan waktu sekitar 30 - 40 detik. *(Ingat: Jika lewat dari 1 menit belum menyala, cabut dan colok kembali stik USB).*
+Boot pertama memerlukan waktu sekitar 30 - 40 detik.
 
 Setelah Debian berhasil boot, Anda bisa mengakses OpenStick melalui USB, Wi-Fi, atau jaringan lokal.
 
@@ -825,17 +825,3 @@ Dengan Debian ARM64, perangkat ini bisa dijadikan modem 4G, USB network adapter,
 
 Kalau Anda baru pertama kali menggunakan OpenStick, **mulailah dari Debian 12 Bookworm**, buat backup terlebih dahulu, lalu gunakan `sbrmenu` untuk mengatur perangkat setelah berhasil boot.
 
----
-
-## Log Pembaruan Terkini
-
-- **Pembaruan Daemon ADB (`py_adbd.py`)**:
-  - Penambahan alokasi *Controlling Terminal* (`TIOCSCTTY`) dan penanganan *Job Control* (`tcsetpgrp`) sehingga pesan peringatan `Inappropriate ioctl for device` hilang sepenuhnya.
-  - Perbaikan direktori kerja dan lingkungan sesi pengguna (`/home/user`) untuk menghilangkan error perizinan profil `/root`.
-  - Akses `sudo` dan utilitas interaktif TUI seperti `sbrmenu` kini dapat membaca input terminal secara normal di sesi `adb shell`.
-- **Dukungan Varian Baru (Debian 13 Trixie Modem-Disabled ~466MB RAM)**:
-  - Penambahan varian eksperimental Trixie Modem-Disabled dengan optimasi RAM ~466MB dan integrasi menu TUI yang disesuaikan.
-- **Direct Kernel Boot Pasca-Flash (`installer.sh`)**:
-  - Menggunakan perintah `fastboot continue` pada tahap akhir instalasi sehingga perangkat langsung melompat ke Linux tanpa memerlukan siklus cabut-colok USB (*cold boot*).
-- **Penyempurnaan Wi-Fi Client di `sbrmenu`**:
-  - Deteksi cerdas jalur koneksi pengguna: jika terhubung via Wi-Fi lokal atau Hotspot stik, pemindaian radio dinonaktifkan dan langsung dialihkan ke menu input manual untuk mencegah pemutusan koneksi SSH secara tiba-tiba.

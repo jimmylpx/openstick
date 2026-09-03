@@ -373,13 +373,7 @@ echo -e "${BLUE}[*] Memulai boot ke sistem Linux (Direct Jump / Fastboot Continu
 fastboot continue 2>/dev/null || fastboot reboot
 
 echo ""
-echo -e "${GREEN}Perangkat sedang booting ke sistem ${DISTRO_TITLE}.${NC}"
-echo ""
-echo -e "${YELLOW}======================================================================${NC}"
-echo -e "${YELLOW}${BOLD}⚠️  PENTING (POWER CYCLE USB):${NC}"
-echo -e "  Jika dalam waktu ${BOLD}1 menit${NC} perangkat belum menyala (LED mati/belum terdeteksi),"
-echo -e "  silakan ${GREEN}${BOLD}CABUT dan COLOK KEMBALI${NC} stik USB Anda ke port PC/server!"
-echo -e "${YELLOW}======================================================================${NC}"
+echo -e "${GREEN}Perangkat sedang booting ke sistem ${DISTRO_TITLE}...${NC}"
 echo ""
 echo "Setelah booting selesai (~40 detik):"
 echo "  - Wi-Fi Hotspot : SSID '4G-UFI-XX' (Password: 1234567890)"
