@@ -401,31 +401,26 @@ Partition table dan komponen dasar dari paket `base/` akan ditulis ke perangkat.
 
 Installer mengunduh dan memasang firmware Debian yang dipilih:
 
-```text
-bookworm.zip
-```
-
-atau:
-
-```text
-trixie.zip
-```
+- `bookworm.zip` (Debian 12 Bookworm Standar - 4G Modem Aktif)
+- `bookworm-modem-disabled.zip` (Debian 12 Bookworm Modem-Disabled - RAM Maksimal ~512MB)
+- `trixie.zip` (Debian 13 Trixie - Testing)
 
 ### 6. Restore partisi modem
 
-Partisi modem dari hasil backup sebelumnya dikembalikan ke perangkat.
+Partisi modem dari hasil backup sebelumnya dikembalikan ke perangkat agar kalibrasi radio Wi-Fi (`persist`) dan integritas hardware (`sec`, `fsc`, dsb.) tetap terjaga.
 
 ### 7. Reboot
 
-Setelah semuanya selesai, OpenStick akan reboot ke Debian Linux.
+Setelah semuanya selesai, OpenStick akan reboot otomatis ke Debian Linux.
 
-> **Jangan mencabut USB atau mematikan komputer ketika proses flashing sedang berjalan.**
+> **⚠️ Catatan Penting Pasca-Flash (Power Cycle):**  
+> Pada banyak tipe modem USB, pemutusan arus 5V tidak terjadi secara otomatis saat perintah reboot dijalankan. **Jika dalam waktu 1 menit perangkat tidak kunjung boot** (LED indikator tidak berkedip atau belum terdeteksi di jaringan/USB), **segera lakukan cabut dan colok kembali stik USB Anda** ke port komputer agar chipset melakukan booting ulang perangkat keras (*cold boot*).
 
 ---
 
 # Setelah Instalasi
 
-Boot pertama dapat memerlukan waktu sekitar 40 detik.
+Boot pertama memerlukan waktu sekitar 30 - 40 detik. *(Ingat: Jika lewat dari 1 menit belum menyala, cabut dan colok kembali stik USB).*
 
 Setelah Debian berhasil boot, Anda bisa mengakses OpenStick melalui USB, Wi-Fi, atau jaringan lokal.
 
