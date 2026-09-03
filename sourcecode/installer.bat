@@ -64,6 +64,7 @@ if "%CURRENT_DIR:~-1%"=="\" set "CURRENT_DIR=%CURRENT_DIR:~0,-1%"
 set "ACTUAL_BASE=%CURRENT_DIR%"
 set "EXTRACTED_DIR=%CURRENT_DIR%\extracted"
 set "DOWNLOADS_DIR=%CURRENT_DIR%\downloads"
+set "EXTRACTOR_PY=%CURRENT_DIR%\extract_gpt.py"
 
 if not exist "%EXTRACTED_DIR%" mkdir "%EXTRACTED_DIR%"
 if not exist "%DOWNLOADS_DIR%" mkdir "%DOWNLOADS_DIR%"
@@ -141,8 +142,18 @@ if not errorlevel 1 (
         if "!USE_EXISTING!"=="" set "USE_EXISTING=y"
         if /i "!USE_EXISTING!"=="y" (
             echo [OK] Mengekstrak partisi asli dari !EXISTING_BACKUP!...
-            python -c "import struct, os, sys; bin_f=sys.argv[1]; out_d=sys.argv[2]; req=['fsc','fsg','modem','modemst1','modemst2','persist','sec']; f=open(bin_f,'rb'); f.seek(512); hdr=f.read(92); part_lba, num_entries, entry_sz = struct.unpack('<QII', hdr[72:88]); f.seek(part_lba*512); [open(os.path.join(out_d,f'{name}.bin'),'wb').write((f.seek(start*512) or True) and f.read((end-start+1)*512)) for e in [f.read(entry_sz) for _ in range(num_entries)] if len(e)>=128 and e[:16]!=b'\x00'*16 for start,end in [struct.unpack('<QQ', e[32:48])] for name in [e[56:128].decode('utf-16le',errors='ignore').rstrip('\x00').lower()] if name in req]; print('[OK] Partisi asli berhasil diekstrak!')" "!EXISTING_BACKUP!" "%EXTRACTED_DIR%"
-            set "FASTBOOT_READY_WITH_BACKUP=1"
+            python "%EXTRACTOR_PY%" "!EXISTING_BACKUP!" "%EXTRACTED_DIR%"
+            
+            REM Verifikasi hasil ekstraksi
+            set "HAS_ALL_EXTRACTED=1"
+            for %%P in (fsc fsg modem modemst1 modemst2 persist sec) do (
+                if not exist "%EXTRACTED_DIR%\%%P.bin" set "HAS_ALL_EXTRACTED=0"
+            )
+            if "!HAS_ALL_EXTRACTED!"=="1" (
+                set "FASTBOOT_READY_WITH_BACKUP=1"
+            ) else (
+                echo [!] Ekstraksi partisi belum lengkap. Wajib masuk mode EDL 9008 untuk membuat backup baru.
+            )
         ) else (
             echo [!] File backup tidak digunakan. Wajib masuk mode EDL 9008 untuk membuat backup baru.
         )
@@ -182,17 +193,11 @@ if errorlevel 1 (
 echo.
 echo [OK] Port EDL Qualcomm 9008 terdeteksi dan merespons!
 
-REM Cek backup lama di folder installer saat ini
+REM Cek backup lama di folder installer saat ini jika mode EDL
 set "SKIP_BACKUP=0"
-set "EXISTING_BACKUP="
-for /f "delims=" %%F in ('dir /b /o-d "%CURRENT_DIR%\backup*.bin" 2^>nul') do (
-    set "EXISTING_BACKUP=%CURRENT_DIR%\%%F"
-    goto FOUND_BACKUP
-)
-:FOUND_BACKUP
 if defined EXISTING_BACKUP (
     echo.
-    echo [!] Ditemukan file backup sebelumnya: %EXISTING_BACKUP%
+    echo [!] Ditemukan file backup sebelumnya: !EXISTING_BACKUP!
     set /p USE_EXISTING="Apakah file ini adalah backup dari perangkat saat ini? (y/n, default: y): "
     if "!USE_EXISTING!"=="" set "USE_EXISTING=y"
     if /i "!USE_EXISTING!"=="y" (
@@ -215,7 +220,7 @@ if "!SKIP_BACKUP!"=="0" (
 REM Ekstraksi Partisi Asli dari File Backup via Python
 if exist "!FULL_BACKUP_PATH!" (
     echo [*] Mengekstrak partisi baseband asli dari !FULL_BACKUP_PATH!...
-    python -c "import struct, os, sys; bin_f=sys.argv[1]; out_d=sys.argv[2]; req=['fsc','fsg','modem','modemst1','modemst2','persist','sec']; f=open(bin_f,'rb'); f.seek(512); hdr=f.read(92); part_lba, num_entries, entry_sz = struct.unpack('<QII', hdr[72:88]); f.seek(part_lba*512); [open(os.path.join(out_d,f'{name}.bin'),'wb').write((f.seek(start*512) or True) and f.read((end-start+1)*512)) for e in [f.read(entry_sz) for _ in range(num_entries)] if len(e)>=128 and e[:16]!=b'\x00'*16 for start,end in [struct.unpack('<QQ', e[32:48])] for name in [e[56:128].decode('utf-16le',errors='ignore').rstrip('\x00').lower()] if name in req]; print('[OK] Partisi asli berhasil diekstrak!')" "!FULL_BACKUP_PATH!" "%EXTRACTED_DIR%"
+    python "%EXTRACTOR_PY%" "!FULL_BACKUP_PATH!" "%EXTRACTED_DIR%"
 ) else (
     echo [*] Mencadangkan partisi individual via edl...
     for %%P in (fsc fsg modem modemst1 modemst2 persist sec) do (
