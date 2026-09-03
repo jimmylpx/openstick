@@ -20,17 +20,16 @@ Alih-alih menjalankan firmware Android bawaan, perangkat dapat menjalankan **Deb
 
 Saat ini tersedia tiga pilihan firmware:
 
-| Firmware | Status | Fitur Utama & RAM | Cocok untuk |
-|---|---|---|---|
-| **Debian 12 Bookworm (Standar)** | Stabil / Direkomendasikan | 4G Modem Aktif (RAM ~390MB) | Pemakaian harian dengan kartu SIM 4G |
-| **Debian 12 Bookworm (Modem-Disabled)** | Stabil / High-RAM | Modem Nonaktif (RAM Sekitar ~466MB) | Mini server, Pi-hole, Homelab node, Web server |
-| **Debian 13 Trixie** | Eksperimental | Paket Terbaru (Testing) | Pengujian dan development |
+| Firmware | Fitur Utama & RAM |
+|---|---|---|
+| **Debian 12 Bookworm (Standar)** | 4G Modem Aktif (RAM ~390MB) |
+| **Debian 12 Bookworm (Modem-Disabled)** | Modem Nonaktif (RAM Sekitar ~466MB) |
+| **Debian 13 Trixie** | 4G Modem Aktif (RAM ~390MB) |
+| **Debian 13 Trixie (Modem-Disabled)** | Modem Nonaktif (RAM Sekitar ~466MB) |
 
-**Debian 12 Bookworm (Standar)** adalah pilihan jika Anda membutuhkan koneksi internet seluler melalui kartu SIM 4G LTE.
+**(Standar)** adalah pilihan jika Anda membutuhkan koneksi internet seluler melalui kartu SIM 4G LTE.
 
 **Debian 12 Bookworm (Modem-Disabled)** mengklaim kembali memori reserved modem (~85MB) sehingga kapasitas RAM bebas yang dapat digunakan sistem melonjak menjadi **sekitar 466MB** (dari total 512MB fisik, setelah dipotong alokasi TrustZone/hardware dasar). Sangat direkomendasikan untuk penggunaan homelab/server di mana koneksi internet diperoleh via Wi-Fi atau Ethernet USB.
-
-**Trixie** menggunakan basis Debian 13 Testing dan ditujukan untuk pengguna yang ingin mencoba paket serta komponen yang lebih baru.
 
 ---
 
@@ -215,7 +214,7 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManage
 ```
 
 Panduan lengkap instalasi dan konfigurasi driver WinUSB Zadig:  
-👉 **[ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md](ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md)**
+**[ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md](ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md)**
 
 ---
 
