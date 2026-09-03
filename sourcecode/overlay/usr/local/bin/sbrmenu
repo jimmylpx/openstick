@@ -134,15 +134,17 @@ while true; do
                 sleep 1
                 nmcli con add type wifi ifname wlan0 master br0 con-name hotspot ssid "$SSID" > /dev/null 2>&1
                 
-                echo -e "XXX\n70\nMengatur mode AP dan Keamanan...\nXXX"
+                echo -e "XXX\n70\nMengatur mode AP dan Keamanan WPA2 (AES-CCMP)...\nXXX"
                 sleep 1
-                nmcli con modify hotspot 802-11-wireless.mode ap 802-11-wireless.band bg
+                nmcli con modify hotspot 802-11-wireless.mode ap 802-11-wireless.band bg 802-11-wireless.channel 1
                 nmcli con modify hotspot wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$PASSWORD"
+                nmcli con modify hotspot wifi-sec.proto rsn wifi-sec.pairwise ccmp wifi-sec.group ccmp wifi-sec.pmf disable
+                nmcli con modify hotspot connection.autoconnect yes connection.autoconnect-priority 100
                 nmcli con modify hotspot ipv4.method disabled ipv6.method disabled > /dev/null 2>&1
 
                 echo -e "XXX\n90\nMengaktifkan Hotspot di dalam Bridge...\nXXX"
                 sleep 1
-                nmcli con up hotspot > /dev/null 2>&1
+                timeout 8 nmcli con up hotspot > /dev/null 2>&1 || true
 
                 echo -e "XXX\n100\nSelesai!\nXXX"
                 sleep 1
@@ -263,9 +265,14 @@ while true; do
                         "${MENU_ITEMS[@]}" \
                         3>&1 1>&2 2>&3)
 
-                    # Jika user membatalkan (Cancel), pulihkan Hotspot!
+                    # Jika user membatalkan (Cancel), pulihkan Hotspot tanpa hang!
                     if [ $? != 0 ]; then
-                        nmcli con up "hotspot" >/dev/null 2>&1 || nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                        {
+                            echo -e "XXX\n40\nMengaktifkan kembali Hotspot internal...\nXXX"
+                            timeout 6 nmcli con up "hotspot" >/dev/null 2>&1 || timeout 6 nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                            echo -e "XXX\n100\nSelesai!\nXXX"
+                            sleep 1
+                        } | whiptail --title "Memulihkan Hotspot" --gauge "Mengembalikan Hotspot..." 8 60 0
                         HOTSPOT_DISABLED_BY_US=0
                         break
                     fi
@@ -277,7 +284,7 @@ while true; do
                             --inputbox "Masukkan nama SSID Wi-Fi tujuan (Perhatikan huruf besar/kecil):" 10 65 \
                             3>&1 1>&2 2>&3)
                         if [ $? != 0 ] || [ -z "$TARGET_SSID" ]; then
-                            nmcli con up "hotspot" >/dev/null 2>&1 || nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                            timeout 6 nmcli con up "hotspot" >/dev/null 2>&1 || timeout 6 nmcli con up "Hotspot" >/dev/null 2>&1 || true
                             HOTSPOT_DISABLED_BY_US=0
                             continue
                         fi
@@ -291,7 +298,7 @@ while true; do
                         3>&1 1>&2 2>&3)
 
                     if [ $? != 0 ]; then
-                        nmcli con up "hotspot" >/dev/null 2>&1 || nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                        timeout 6 nmcli con up "hotspot" >/dev/null 2>&1 || timeout 6 nmcli con up "Hotspot" >/dev/null 2>&1 || true
                         HOTSPOT_DISABLED_BY_US=0
                         continue
                     fi
@@ -300,7 +307,7 @@ while true; do
 
                     whiptail --title "Konfirmasi Koneksi Wi-Fi" --yesno "$CONFIRM_MSG" 16 70
                     if [ $? != 0 ]; then
-                        nmcli con up "hotspot" >/dev/null 2>&1 || nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                        timeout 6 nmcli con up "hotspot" >/dev/null 2>&1 || timeout 6 nmcli con up "Hotspot" >/dev/null 2>&1 || true
                         HOTSPOT_DISABLED_BY_US=0
                         continue
                     fi
@@ -342,10 +349,12 @@ if [[ "$STATE" != *"100 (connected)"* ]]; then
     fi
     
     nmcli con add type wifi ifname wlan0 master br0 con-name hotspot ssid "4G-UFI-XX" >/dev/null 2>&1
-    nmcli con modify hotspot 802-11-wireless.mode ap 802-11-wireless.band bg
+    nmcli con modify hotspot 802-11-wireless.mode ap 802-11-wireless.band bg 802-11-wireless.channel 1
     nmcli con modify hotspot wifi-sec.key-mgmt wpa-psk wifi-sec.psk "1234567890"
+    nmcli con modify hotspot wifi-sec.proto rsn wifi-sec.pairwise ccmp wifi-sec.group ccmp wifi-sec.pmf disable
+    nmcli con modify hotspot connection.autoconnect yes connection.autoconnect-priority 100
     nmcli con modify hotspot ipv4.method disabled ipv6.method disabled >/dev/null 2>&1
-    nmcli con up hotspot >/dev/null 2>&1
+    timeout 8 nmcli con up hotspot >/dev/null 2>&1 || true
 else
     nmcli connection modify "$TARGET" connection.autoconnect yes connection.autoconnect-retries 0 >/dev/null 2>&1
     systemctl restart NetworkManager
