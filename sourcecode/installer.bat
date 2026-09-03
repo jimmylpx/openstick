@@ -121,16 +121,52 @@ for %%P in (fsc fsg modem modemst1 modemst2 persist sec) do (
     if not exist "%EXTRACTED_DIR%\%%P.bin" set "HAS_ALL_EXTRACTED=0"
 )
 
-REM Cek apakah perangkat sudah di Fastboot
+REM Cari file backup sebelumnya jika ada
+set "EXISTING_BACKUP="
+for /f "delims=" %%F in ('dir /b /o-d "%CURRENT_DIR%\backup*.bin" 2^>nul') do (
+    set "EXISTING_BACKUP=%CURRENT_DIR%\%%F"
+    goto FOUND_EXISTING_BACKUP
+)
+:FOUND_EXISTING_BACKUP
+
+REM Kondisi 1: Perangkat SUDAH di Fastboot
 fastboot devices 2>nul | findstr /R "[a-zA-Z0-9].*fastboot" >nul
 if not errorlevel 1 (
-    if "%HAS_ALL_EXTRACTED%"=="1" (
-        echo [OK] Perangkat terdeteksi di mode Fastboot dan partisi backup asli sudah lengkap!
+    echo [OK] Perangkat terdeteksi di mode Fastboot!
+    
+    if "%HAS_ALL_EXTRACTED%"=="0" if defined EXISTING_BACKUP (
+        echo.
+        echo [!] Ditemukan file backup sebelumnya: !EXISTING_BACKUP!
+        set /p USE_EXISTING="Apakah file ini adalah backup dari perangkat saat ini? (y/n, default: y): "
+        if "!USE_EXISTING!"=="" set "USE_EXISTING=y"
+        if /i "!USE_EXISTING!"=="y" (
+            echo [OK] Mengekstrak partisi asli dari !EXISTING_BACKUP!...
+            python -c "import struct, os, sys; bin_f=sys.argv[1]; out_d=sys.argv[2]; req=['fsc','fsg','modem','modemst1','modemst2','persist','sec']; f=open(bin_f,'rb'); f.seek(512); hdr=f.read(92); part_lba, num_entries, entry_sz = struct.unpack('<QII', hdr[72:88]); f.seek(part_lba*512); [open(os.path.join(out_d,f'{name}.bin'),'wb').write((f.seek(start*512) or True) and f.read((end-start+1)*512)) for e in [f.read(entry_sz) for _ in range(num_entries)] if len(e)>=128 and e[:16]!=b'\x00'*16 for start,end in [struct.unpack('<QQ', e[32:48])] for name in [e[56:128].decode('utf-16le',errors='ignore').rstrip('\x00').lower()] if name in req]; print('[OK] Partisi asli berhasil diekstrak!')" "!EXISTING_BACKUP!" "%EXTRACTED_DIR%"
+            set "FASTBOOT_READY_WITH_BACKUP=1"
+        ) else (
+            echo [!] File backup tidak digunakan. Wajib masuk mode EDL 9008 untuk membuat backup baru.
+        )
+    ) else if "%HAS_ALL_EXTRACTED%"=="1" (
         set "FASTBOOT_READY_WITH_BACKUP=1"
+    )
+
+    if "!FASTBOOT_READY_WITH_BACKUP!"=="1" (
+        echo [OK] Seluruh partisi backup asli sudah siap.
+        echo [OK] Menyesuaikan kondisi: langsung melanjutkan proses flashing firmware...
+        goto STAGE_2
     )
 )
 
-if "%FASTBOOT_READY_WITH_BACKUP%"=="1" goto STAGE_2
+REM Kondisi 2: Perangkat belum siap di Fastboot dengan backup valid
+fastboot devices 2>nul | findstr /R "[a-zA-Z0-9].*fastboot" >nul
+if not errorlevel 1 if not defined EXISTING_BACKUP if "%HAS_ALL_EXTRACTED%"=="0" (
+    echo.
+    echo [!] Perangkat berada di mode Fastboot tetapi BELUM DITEMUKAN file backup eMMC!
+    echo [!] Untuk mengamankan partisi baseband (IMEI & sinyal 4G), perangkat WAJIB di-backup terlebih dahulu.
+    echo     -^> Silakan cabut modem dari port USB.
+    echo     -^> Tahan tombol fisik EDL (atau hubungkan titik test point EDL), lalu colokkan kembali ke port USB.
+    echo.
+)
 
 echo.
 echo Menunggu modem dalam mode EDL (Qualcomm 9008)...
