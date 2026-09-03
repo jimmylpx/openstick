@@ -154,33 +154,43 @@ while true; do
         "2")
             # --- MENU 2: AKTIFKAN WIFI CLIENT (AUTO-FALLBACK DARURAT) ---
             
-            # Deteksi apakah user terkoneksi via Wi-Fi vs RNDIS / ADB / Serial
+            # Deteksi apakah user terkoneksi via Wi-Fi (Hotspot ataupun Wi-Fi Lokal) vs RNDIS / ADB / Serial
             CLIENT_IP=$(echo "$SSH_CLIENT" | awk '{print $1}')
             IS_WIFI_CLIENT=0
             
             if [ -n "$CLIENT_IP" ]; then
-                CLIENT_MAC=$(ip neigh show to "$CLIENT_IP" dev br0 2>/dev/null | awk '{print $5}' | head -n 1)
-                if [ -z "$CLIENT_MAC" ]; then
-                    CLIENT_MAC=$(awk -v ip="$CLIENT_IP" '$1==ip {print $4}' /proc/net/arp 2>/dev/null | head -n 1)
-                fi
-                
-                # Cek stasiun Wi-Fi aktif atau FDB bridge port wlan0
-                if [ -n "$CLIENT_MAC" ] && iw dev wlan0 station dump 2>/dev/null | grep -qi "$CLIENT_MAC"; then
+                DEV_USED=$(ip route get "$CLIENT_IP" 2>/dev/null | grep -o "dev [^ ]*" | awk '{print $2}')
+                if [ "$DEV_USED" = "wlan0" ]; then
+                    # Terkoneksi via jaringan Wi-Fi lokal (Client)
                     IS_WIFI_CLIENT=1
-                elif [ -n "$CLIENT_MAC" ] && bridge fdb show dev wlan0 2>/dev/null | grep -qi "$CLIENT_MAC"; then
-                    IS_WIFI_CLIENT=1
-                elif [ "$CLIENT_IP" != "192.168.100.2" ] && ! bridge fdb show dev usb0 2>/dev/null | grep -qi "$CLIENT_MAC"; then
-                    if iw dev wlan0 info 2>/dev/null | grep -qi "type AP"; then
+                elif [ "$DEV_USED" = "br0" ]; then
+                    # Terkoneksi via Bridge br0 (Bisa Hotspot wlan0 atau USB RNDIS usb0)
+                    CLIENT_MAC=$(ip neigh show to "$CLIENT_IP" dev br0 2>/dev/null | awk '{print $5}' | head -n 1)
+                    [ -z "$CLIENT_MAC" ] && CLIENT_MAC=$(awk -v ip="$CLIENT_IP" '$1==ip {print $4}' /proc/net/arp 2>/dev/null | head -n 1)
+
+                    # Jika terdaftar di port usb0, berarti USB RNDIS
+                    if [ -n "$CLIENT_MAC" ] && bridge fdb show dev usb0 2>/dev/null | grep -qi "$CLIENT_MAC"; then
+                        IS_WIFI_CLIENT=0
+                    # Jika terdaftar di port wlan0 atau stasiun Wi-Fi aktif, berarti Hotspot
+                    elif [ -n "$CLIENT_MAC" ] && ( bridge fdb show dev wlan0 2>/dev/null | grep -qi "$CLIENT_MAC" || iw dev wlan0 station dump 2>/dev/null | grep -qi "$CLIENT_MAC" ); then
+                        IS_WIFI_CLIENT=1
+                    elif [ "$CLIENT_IP" != "192.168.100.2" ]; then
+                        # Klien lain pada br0 selain IP default RNDIS adalah klien Wi-Fi Hotspot
+                        IS_WIFI_CLIENT=1
+                    fi
+                else
+                    # Rute lain (misal via wlan0 langsung)
+                    if iw dev wlan0 station dump 2>/dev/null | grep -q ":"; then
                         IS_WIFI_CLIENT=1
                     fi
                 fi
             fi
 
-            # KONDISI 1: User terkoneksi via Wi-Fi (Hotspot/Lokal)
-            # Hanya sediakan input manual agar koneksi SSH tidak terputus saat memindai
+            # KONDISI 1: User terkoneksi via Wi-Fi (Hotspot maupun Wi-Fi Lokal)
+            # Sesuai arahan: fitur yang muncul hanya input manual untuk mencegah pemutusan koneksi
             if [ $IS_WIFI_CLIENT -eq 1 ]; then
-                whiptail --title "Peringatan Koneksi Wi-Fi" \
-                    --msgbox "Perangkat mendeteksi Anda terhubung melalui jaringan Wi-Fi (IP: $CLIENT_IP).\n\nUntuk menjaga sesi SSH tidak terputus saat radio memindai, fitur pemindaian otomatis dinonaktifkan.\n\nSilakan masukkan SSID dan Password Wi-Fi tujuan secara manual pada layar berikutnya." 13 65
+                whiptail --title "Mode Input Manual (Koneksi Wi-Fi / Hotspot)" \
+                    --msgbox "Perangkat mendeteksi Anda terhubung melalui jaringan Wi-Fi (Hotspot atau Jaringan Lokal) dengan IP: $CLIENT_IP.\n\nUntuk mencegah koneksi SSH Anda terputus saat radio beralih, fitur pemindaian otomatis dinonaktifkan.\n\nSilakan masukkan nama SSID dan Password Wi-Fi tujuan secara manual pada layar berikutnya." 14 68
 
                 TARGET_SSID=$(whiptail --title "Input Wi-Fi Manual" \
                     --inputbox "Masukkan nama SSID Wi-Fi tujuan (Perhatikan huruf besar/kecil):" 10 65 \
