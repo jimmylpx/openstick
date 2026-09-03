@@ -80,7 +80,7 @@ echo ""
 # Pilihan Varian Debian
 echo -e "${YELLOW}Pilih Varian Sistem Operasi Debian yang ingin Anda pasang:${NC}"
 echo "  1) Debian 12 Bookworm (Standar)        [Rekomendasi - 4G Modem Aktif, RAM ~390MB]"
-echo "  2) Debian 12 Bookworm (Modem-Disabled) [Rekomendasi Server/Homelab - RAM Maksimal ~512MB]"
+echo "  2) Debian 12 Bookworm (Modem-Disabled) [Rekomendasi Server/Homelab - RAM Sekitar ~466MB]"
 echo "  3) Debian 13 Trixie                    [Eksperimental - Belum Stabil / Tahap Uji Coba]"
 echo ""
 
@@ -92,7 +92,7 @@ fi
 
 if [ "$CHOICE" = "2" ] || [ "$CHOICE" = "bookworm-modem-disabled" ] || [ "$CHOICE" = "modem-disabled" ]; then
     DISTRO_NAME="bookworm-modem-disabled"
-    DISTRO_TITLE="Debian 12 Bookworm (Modem-Disabled High-RAM ~512MB)"
+    DISTRO_TITLE="Debian 12 Bookworm (Modem-Disabled - RAM ~466MB)"
 elif [ "$CHOICE" = "3" ] || [ "$CHOICE" = "trixie" ]; then
     DISTRO_NAME="trixie"
     DISTRO_TITLE="Debian 13 Trixie (Eksperimental)"
