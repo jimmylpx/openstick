@@ -130,73 +130,75 @@ if not errorlevel 1 (
     )
 )
 
-if "%FASTBOOT_READY_WITH_BACKUP%"=="0" (
+if "%FASTBOOT_READY_WITH_BACKUP%"=="1" goto STAGE_2
+
+echo.
+echo Menunggu modem dalam mode EDL (Qualcomm 9008)...
+echo Tips: Tahan tombol EDL saat mencolokkan stik USB ke PC Windows.
+
+:WAIT_EDL
+edl printgpt >nul 2>&1
+if errorlevel 1 (
+    <nul set /p=.
+    timeout /t 2 /nobreak >nul
+    goto WAIT_EDL
+)
+echo.
+echo [OK] Port EDL Qualcomm 9008 terdeteksi dan merespons!
+
+REM Cek backup lama di folder installer saat ini
+set "SKIP_BACKUP=0"
+set "EXISTING_BACKUP="
+for /f "delims=" %%F in ('dir /b /o-d "%CURRENT_DIR%\backup*.bin" 2^>nul') do (
+    set "EXISTING_BACKUP=%CURRENT_DIR%\%%F"
+    goto FOUND_BACKUP
+)
+:FOUND_BACKUP
+if defined EXISTING_BACKUP (
     echo.
-    echo Menunggu modem dalam mode EDL (Qualcomm 9008)...
-    echo Tips: Tahan tombol EDL saat mencolokkan stik USB ke PC Windows.
-    
-    :WAIT_EDL
-    edl printgpt >nul 2>&1
-    if errorlevel 1 (
-        <nul set /p=.
-        timeout /t 2 /nobreak >nul
-        goto WAIT_EDL
+    echo [!] Ditemukan file backup sebelumnya: %EXISTING_BACKUP%
+    set /p USE_EXISTING="Apakah file ini adalah backup dari perangkat saat ini? (y/n, default: y): "
+    if "!USE_EXISTING!"=="" set "USE_EXISTING=y"
+    if /i "!USE_EXISTING!"=="y" (
+        echo [OK] Menggunakan file backup yang ada. Proses dump EDL dilewati...
+        set "FULL_BACKUP_PATH=!EXISTING_BACKUP!"
+        set "SKIP_BACKUP=1"
     )
-    echo.
-    echo [OK] Port EDL Qualcomm 9008 terdeteksi dan merespons!
-
-    REM Cek backup lama di folder installer saat ini
-    set "SKIP_BACKUP=0"
-    for /f "delims=" %%F in ('dir /b /o-d "%CURRENT_DIR%\backup*.bin" 2^>nul') do (
-        set "EXISTING_BACKUP=%CURRENT_DIR%\%%F"
-        goto FOUND_BACKUP
-    )
-    :FOUND_BACKUP
-    if defined EXISTING_BACKUP (
-        echo.
-        echo [!] Ditemukan file backup sebelumnya: %EXISTING_BACKUP%
-        set /p USE_EXISTING="Apakah file ini adalah backup dari perangkat saat ini? (y/n, default: y): "
-        if "!USE_EXISTING!"=="" set "USE_EXISTING=y"
-        if /i "!USE_EXISTING!"=="y" (
-            echo [OK] Menggunakan file backup yang ada. Proses dump EDL dilewati...
-            set "FULL_BACKUP_PATH=!EXISTING_BACKUP!"
-            set "SKIP_BACKUP=1"
-        )
-    )
-
-    if "!SKIP_BACKUP!"=="0" (
-        for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value') do set "DT=%%I"
-        set "TIMESTAMP=!DT:~0,4!_!DT:~4,2!_!DT:~6,2!_!DT:~8,2!_!DT:~10,2!"
-        set "BACKUP_NAME=backup_!TIMESTAMP!.bin"
-        set "FULL_BACKUP_PATH=%CURRENT_DIR%\!BACKUP_NAME!"
-        
-        echo [*] Melakukan FULL RAW DUMP seluruh eMMC flash via edl -^> !BACKUP_NAME!...
-        edl rf "!FULL_BACKUP_PATH!"
-    )
-
-    REM Ekstraksi Partisi Asli dari File Backup via Python
-    if exist "!FULL_BACKUP_PATH!" (
-        echo [*] Mengekstrak partisi baseband asli dari !FULL_BACKUP_PATH!...
-        python -c "import struct, os, sys; bin_f=sys.argv[1]; out_d=sys.argv[2]; req=['fsc','fsg','modem','modemst1','modemst2','persist','sec']; f=open(bin_f,'rb'); f.seek(512); hdr=f.read(92); part_lba, num_entries, entry_sz = struct.unpack('<QII', hdr[72:88]); f.seek(part_lba*512); [open(os.path.join(out_d,f'{name}.bin'),'wb').write((f.seek(start*512) or True) and f.read((end-start+1)*512)) for e in [f.read(entry_sz) for _ in range(num_entries)] if len(e)>=128 and e[:16]!=b'\x00'*16 for start,end in [struct.unpack('<QQ', e[32:48])] for name in [e[56:128].decode('utf-16le',errors='ignore').rstrip('\x00').lower()] if name in req]; print('[OK] Partisi asli berhasil diekstrak!')" "!FULL_BACKUP_PATH!" "%EXTRACTED_DIR%"
-    ) else (
-        echo [*] Mencadangkan partisi individual via edl...
-        for %%P in (fsc fsg modem modemst1 modemst2 persist sec) do (
-            echo     -^> Dumping %%P...
-            edl r %%P "%EXTRACTED_DIR%\%%P.bin"
-        )
-    )
-
-    echo [*] Menyiapkan Fastboot direct jump via EDL...
-    echo     -^> Menulis bootloader aboot...
-    edl w aboot "%ACTUAL_BASE%\aboot.bin"
-    echo     -^> Mengosongkan partisi boot (force Fastboot mode)...
-    edl e boot
-    echo     -^> Mengirim edl reset (langsung melompat ke Fastboot)...
-    edl reset >nul 2>&1
-    echo [OK] Reset terkirim, beralih langsung ke Fastboot mode...
-    timeout /t 3 /nobreak >nul
 )
 
+if "!SKIP_BACKUP!"=="0" (
+    for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value') do set "DT=%%I"
+    set "TIMESTAMP=!DT:~0,4!_!DT:~4,2!_!DT:~6,2!_!DT:~8,2!_!DT:~10,2!"
+    set "BACKUP_NAME=backup_!TIMESTAMP!.bin"
+    set "FULL_BACKUP_PATH=%CURRENT_DIR%\!BACKUP_NAME!"
+    
+    echo [*] Melakukan FULL RAW DUMP seluruh eMMC flash via edl -^> !BACKUP_NAME!...
+    edl rf "!FULL_BACKUP_PATH!"
+)
+
+REM Ekstraksi Partisi Asli dari File Backup via Python
+if exist "!FULL_BACKUP_PATH!" (
+    echo [*] Mengekstrak partisi baseband asli dari !FULL_BACKUP_PATH!...
+    python -c "import struct, os, sys; bin_f=sys.argv[1]; out_d=sys.argv[2]; req=['fsc','fsg','modem','modemst1','modemst2','persist','sec']; f=open(bin_f,'rb'); f.seek(512); hdr=f.read(92); part_lba, num_entries, entry_sz = struct.unpack('<QII', hdr[72:88]); f.seek(part_lba*512); [open(os.path.join(out_d,f'{name}.bin'),'wb').write((f.seek(start*512) or True) and f.read((end-start+1)*512)) for e in [f.read(entry_sz) for _ in range(num_entries)] if len(e)>=128 and e[:16]!=b'\x00'*16 for start,end in [struct.unpack('<QQ', e[32:48])] for name in [e[56:128].decode('utf-16le',errors='ignore').rstrip('\x00').lower()] if name in req]; print('[OK] Partisi asli berhasil diekstrak!')" "!FULL_BACKUP_PATH!" "%EXTRACTED_DIR%"
+) else (
+    echo [*] Mencadangkan partisi individual via edl...
+    for %%P in (fsc fsg modem modemst1 modemst2 persist sec) do (
+        echo     -^> Dumping %%P...
+        edl r %%P "%EXTRACTED_DIR%\%%P.bin"
+    )
+)
+
+echo [*] Menyiapkan Fastboot direct jump via EDL...
+echo     -^> Menulis bootloader aboot...
+edl w aboot "%ACTUAL_BASE%\aboot.bin"
+echo     -^> Mengosongkan partisi boot (force Fastboot mode)...
+edl e boot
+echo     -^> Mengirim edl reset (langsung melompat ke Fastboot)...
+edl reset >nul 2>&1
+echo [OK] Reset terkirim, beralih langsung ke Fastboot mode...
+timeout /t 3 /nobreak >nul
+
+:STAGE_2
 REM ==============================================================================
 REM [TAHAP 2/4] VERIFIKASI FASTBOOT & FLASH BASE GENERIC
 REM ==============================================================================
