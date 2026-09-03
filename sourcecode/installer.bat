@@ -57,26 +57,20 @@ if "%MISSING%"=="1" (
     exit /b 1
 )
 
-REM Deteksi direktori kerja
-set "BASE_DIR=%~dp0"
-if "%BASE_DIR:~-1%"=="\" set "BASE_DIR=%BASE_DIR:~0,-1%"
+REM Deteksi direktori kerja (Semua file diletakkan di folder installer.bat saat ini)
+set "CURRENT_DIR=%~dp0"
+if "%CURRENT_DIR:~-1%"=="\" set "CURRENT_DIR=%CURRENT_DIR:~0,-1%"
 
-for %%I in ("%BASE_DIR%\..") do set "ROOT_DIR=%%~fI"
-if exist "%BASE_DIR%\aboot.bin" (
-    set "ACTUAL_BASE=%BASE_DIR%"
-) else (
-    set "ACTUAL_BASE=%ROOT_DIR%\base"
-)
-
-set "EXTRACTED_DIR=%ROOT_DIR%\extracted"
-set "DOWNLOADS_DIR=%ROOT_DIR%\downloads"
+set "ACTUAL_BASE=%CURRENT_DIR%"
+set "EXTRACTED_DIR=%CURRENT_DIR%\extracted"
+set "DOWNLOADS_DIR=%CURRENT_DIR%\downloads"
 
 if not exist "%EXTRACTED_DIR%" mkdir "%EXTRACTED_DIR%"
 if not exist "%DOWNLOADS_DIR%" mkdir "%DOWNLOADS_DIR%"
 
-echo Direktori Kerja : %ROOT_DIR%
-echo Folder Base     : %ACTUAL_BASE%
-echo Folder Backup   : %EXTRACTED_DIR%
+echo Folder Installer : %CURRENT_DIR%
+echo Folder Base      : %ACTUAL_BASE%
+echo Folder Extracted : %EXTRACTED_DIR%
 echo ======================================================================
 echo.
 
@@ -105,7 +99,7 @@ if "%CHOICE%"=="2" (
     set "DISTRO_TITLE=Debian 12 Bookworm (Standar Stabil)"
 )
 
-set "DISTRO_DIR=%ROOT_DIR%\%DISTRO_NAME%"
+set "DISTRO_DIR=%CURRENT_DIR%\%DISTRO_NAME%"
 set "DISTRO_ZIP=%DISTRO_NAME%.zip"
 set "DISTRO_URL=https://github.com/%GITHUB_REPO%/releases/download/%RELEASE_TAG%/%DISTRO_ZIP%"
 if not exist "%DISTRO_DIR%" mkdir "%DISTRO_DIR%"
@@ -151,10 +145,10 @@ if "%FASTBOOT_READY_WITH_BACKUP%"=="0" (
     echo.
     echo [OK] Port EDL Qualcomm 9008 terdeteksi dan merespons!
 
-    REM Cek backup lama
+    REM Cek backup lama di folder installer saat ini
     set "SKIP_BACKUP=0"
-    for /f "delims=" %%F in ('dir /b /o-d "%ROOT_DIR%\backup*.bin" 2^>nul') do (
-        set "EXISTING_BACKUP=%ROOT_DIR%\%%F"
+    for /f "delims=" %%F in ('dir /b /o-d "%CURRENT_DIR%\backup*.bin" 2^>nul') do (
+        set "EXISTING_BACKUP=%CURRENT_DIR%\%%F"
         goto FOUND_BACKUP
     )
     :FOUND_BACKUP
@@ -174,7 +168,7 @@ if "%FASTBOOT_READY_WITH_BACKUP%"=="0" (
         for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value') do set "DT=%%I"
         set "TIMESTAMP=!DT:~0,4!_!DT:~4,2!_!DT:~6,2!_!DT:~8,2!_!DT:~10,2!"
         set "BACKUP_NAME=backup_!TIMESTAMP!.bin"
-        set "FULL_BACKUP_PATH=%ROOT_DIR%\!BACKUP_NAME!"
+        set "FULL_BACKUP_PATH=%CURRENT_DIR%\!BACKUP_NAME!"
         
         echo [*] Melakukan FULL RAW DUMP seluruh eMMC flash via edl -^> !BACKUP_NAME!...
         edl rf "!FULL_BACKUP_PATH!"
@@ -241,7 +235,7 @@ echo ^>^>^> [TAHAP 3/4] Menyiapkan ^& Flashing %DISTRO_TITLE%...
 
 if not exist "%DISTRO_DIR%\rootfs.bin" (
     set "LOCAL_ZIP=%DOWNLOADS_DIR%\%DISTRO_ZIP%"
-    if not exist "!LOCAL_ZIP!" if exist "%ROOT_DIR%\%DISTRO_ZIP%" set "LOCAL_ZIP=%ROOT_DIR%\%DISTRO_ZIP%"
+    if not exist "!LOCAL_ZIP!" if exist "%CURRENT_DIR%\%DISTRO_ZIP%" set "LOCAL_ZIP=%CURRENT_DIR%\%DISTRO_ZIP%"
 
     if not exist "!LOCAL_ZIP!" (
         echo [*] Mengunduh %DISTRO_ZIP% dari GitHub Releases...
