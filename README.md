@@ -354,7 +354,7 @@ Installer akan memandu Anda memilih varian Debian yang ingin dipasang (Bookworm 
 
 ### Menggunakan Windows
 
-Di dalam cmd yang mengarah ke folder hasil ekstraksi `base-generic`:
+Pastikan kamu masih di dalam cmd yang mengarah ke folder hasil ekstraksi `base-generic` tadi:
 
 1. Pastikan perangkat OpenStick sudah terhubung dalam mode EDL 9008.
 2. Jalankan `installer.bat` melalui Terminal / CMD).
