@@ -323,11 +323,14 @@ chmod +x installer.sh
 ```
 
 ### Windows
-1. Unduh berkas [base-generic.zip](https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip).
-2. Klik kanan berkas zip $\rightarrow$ **Extract All...** ke sebuah folder (misalnya `base-generic`).
-3. Buka folder hasil ekstraksi tersebut di File Explorer.
-
----
+1. Masuk ke folder yang akan kamu jadikan lokasi installasi, misalnya D:\OpenStick. [base-generic.zip](https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip).
+2. Klik kanan pada area kosong di dalam folder dan pilih `Open in Terminal/CMD` dan jalanakn perintah berikut:
+```cmd
+curl -LO https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip
+mkdir base-generic
+tar -xf base-generic.zip -C base-generic
+cd base-generic
+```
 
 ## 3. Jalankan Installer
 
@@ -351,10 +354,10 @@ Installer akan memandu Anda memilih varian Debian yang ingin dipasang (Bookworm 
 
 ### Menggunakan Windows
 
-Di dalam folder hasil ekstraksi `base-generic`:
+Di dalam cmd yang mengarah ke folder hasil ekstraksi `base-generic`:
 
 1. Pastikan perangkat OpenStick sudah terhubung dalam mode EDL 9008.
-2. Klik dua kali pada berkas **`installer.bat`** (atau jalankan `python win_installer.py` melalui Terminal / CMD).
+2. Jalankan `installer.bat` melalui Terminal / CMD).
 3. Jendela installer interaktif akan terbuka secara otomatis dan menampilkan menu pilihan varian sistem operasi Debian.
 4. Masukkan nomor pilihan varian Anda (1, 2, 3, atau 4) lalu tekan **Enter**.
 5. Installer akan mengunduh firmware Debian secara otomatis, membackup partisi asli, mem-flash sistem, dan mereboot perangkat langsung ke Linux.
