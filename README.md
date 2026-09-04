@@ -209,12 +209,8 @@ yay -S edl-git
 
 Di Windows, Anda dapat menginstal seluruh tool pendukung (**ADB, Fastboot, Python, dan Qualcomm EDL**) secara otomatis menggunakan satu skrip PowerShell:
 
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; iex (irm https://raw.githubusercontent.com/jimmylpx/openstick/main/install_adb_fastboot_edl.ps1)
-```
-
 Panduan lengkap instalasi dan konfigurasi driver WinUSB Zadig:  
-**[ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md](ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md)**
+**[ADB FASTBOOT EDL INSTALL WINDOWS](ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md)**
 
 ---
 
