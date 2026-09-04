@@ -166,13 +166,13 @@ Sistem yang dapat digunakan antara lain:
 - Debian
 - Ubuntu
 - Raspberry Pi OS
-- WSL2
 - Distribusi Linux lain yang memiliki tool yang dibutuhkan
+- Windows 10-11
 
 Pastikan perangkat tersebut memiliki:
 
 - USB port
-- akses `sudo`
+- akses `sudo` untuk Linux
 - koneksi internet
 - kabel USB yang mendukung data
 
