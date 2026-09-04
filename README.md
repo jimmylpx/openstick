@@ -323,7 +323,7 @@ chmod +x installer.sh
 ```
 
 ### Windows
-1. Masuk ke folder yang akan kamu jadikan lokasi installasi, misalnya D:\OpenStick. [base-generic.zip](https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip).
+1. Masuk ke folder yang akan kamu jadikan lokasi installasi, misalnya D:\OpenStick.
 2. Klik kanan pada area kosong di dalam folder dan pilih `Open in Terminal/CMD` dan jalanakn perintah berikut:
 ```cmd
 curl -LO https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip
