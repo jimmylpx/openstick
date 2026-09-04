@@ -337,7 +337,7 @@ chmod +x installer.sh
 
 Pilih instruksi yang sesuai dengan sistem operasi yang Anda gunakan:
 
-### 🐧 Menggunakan Linux
+### Menggunakan Linux
 
 Jalankan skrip installer:
 
@@ -353,7 +353,7 @@ sudo ./installer.sh
 
 Installer akan memandu Anda memilih varian Debian yang ingin dipasang (Bookworm / Bookworm Modem-Disabled / Trixie / Trixie Modem-Disabled).
 
-### 🪟 Menggunakan Windows
+### Menggunakan Windows
 
 Di dalam folder hasil ekstraksi `base-generic`:
 
