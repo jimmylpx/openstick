@@ -54,9 +54,7 @@ Setelah tools terpasang, saat Anda menghubungkan OpenStick dalam mode EDL (Qualc
 
 ### Langkah Pasang Driver WinUSB via Zadig:
 
-1. Colokkan OpenStick ke port USB komputer dalam mode EDL:
-   - *Untuk board dengan tombol EDL (seperti HMUF02-V05 / UFI103S-V05)*: Tekan dan tahan tombol fisik EDL, colokkan ke USB, tahan selama 3 detik, lalu lepaskan.
-   - *Untuk board tanpa tombol*: Masuk ke fastboot lalu jalankan `fastboot oem reboot-edl`, atau via ADB `adb reboot edl`.
+1. Colokkan OpenStick ke port USB komputer dalam mode EDL, bisa lihat di[`sini`](https://github.com/jimmylpx/openstick/#1-masuk-ke-edl-9008)
 2. Buka aplikasi **Zadig** (sudah otomatis diunduh ke `C:\OpenStick_Tools\zadig.exe`).
 3. Pada menu atas Zadig, klik **Options** $\rightarrow$ Centang **List All Devices**.
 4. Pada menu *dropdown*, pilih perangkat yang bertuliskan:
