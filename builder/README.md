@@ -10,7 +10,7 @@ Build system ini mendukung 4 varian target:
 
 ---
 
-## 📁 Struktur Direktori
+## Struktur Direktori
 
 ```text
 builder/
@@ -44,11 +44,6 @@ builder/
     ├── 02_apply_overlay.sh    # Pemasangan overlay, services, & konfigurasi distro
     ├── 03_build_kernel_boot.sh# Menyiapkan partisi bootloader & boot.bin
     └── 04_pack_release.sh     # Pengemasan file rilis zip siap flash
-```
-
-> **Catatan:** Skrip installer (`installer.sh`, `installer.bat`, dan `win_installer.py`) tidak disimpan di folder builder ini karena sudah tersedia dan dikemas secara resmi di dalam paket **[base-generic.zip](https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip)**.
-
----
 
 ## 🛠️ Persyaratan Sistem Komputer Build
 
@@ -66,7 +61,7 @@ sudo apt install -y debootstrap qemu-user-static binfmt-support e2fsprogs zip un
 
 ---
 
-## 🚀 Cara Membangun Firmware
+## Cara Membangun Firmware
 
 Jalankan `build.sh` dengan memilih target varian yang diinginkan:
 
@@ -95,7 +90,7 @@ sudo ./build.sh --target trixie-modem-disabled
 sudo ./build.sh --target all
 ```
 
-### ⚡ Mode Build:
+### Mode Build:
 * **Mode Default (Rekomendasi - Cepat & Stabil):** Menggunakan template base rootfs terverifikasi dengan driver kernel MSM8916 & firmware modem/Wi-Fi resmi. Build hanya membutuhkan waktu **~20–30 detik**.
 * **Mode Dari Nol (`--from-scratch`):** Menjalankan bootstrap murni dari repositori Debian via `debootstrap` (memerlukan koneksi internet dan waktu ekstra untuk kompilasi/unpack di QEMU).
   ```bash
@@ -104,7 +99,7 @@ sudo ./build.sh --target all
 
 ---
 
-## 📦 Output Hasil Build
+## Output Hasil Build
 
 Setelah proses selesai, file rilis akan dibuat di direktori `output/`:
 - `output/<target>.zip` (misalnya `output/bookworm-modem-disabled.zip`)
