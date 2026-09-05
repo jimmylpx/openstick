@@ -1,0 +1,43 @@
+#!/bin/bash
+# ==============================================================================
+# OpenStick MSM8916 - LongQT Official Native USB Gadget (RNDIS OS Desc)
+# ==============================================================================
+
+# 1. Load required modules
+modprobe libcomposite 2>/dev/null || true
+modprobe usb_f_rndis 2>/dev/null || true
+modprobe u_ether 2>/dev/null || true
+
+# 2. Mount configfs
+if ! mountpoint -q /sys/kernel/config; then
+    mkdir -p /sys/kernel/config
+    mount -t configfs none /sys/kernel/config 2>/dev/null || true
+fi
+
+# 3. Set hardware role to device/gadget
+for rf in /sys/class/usb_role/ci_hdrc.0-role-switch/role /sys/devices/platform/soc@0/78d9000.usb/ci_hdrc.0/role /sys/kernel/debug/ci_hdrc.0/role; do
+    if [ -f "$rf" ]; then
+        echo device > "$rf" 2>/dev/null || echo gadget > "$rf" 2>/dev/null || true
+    fi
+done
+
+# 4. Reset previous gadget
+gt disable g1 2>/dev/null || true
+gt rm -r g1 2>/dev/null || true
+
+# 5. Load LongQT official RNDIS template (with Windows MSFT100 OS Descriptors)
+if [ -f /etc/gt/templates/rndis-os-desc.scheme ]; then
+    gt load /etc/gt/templates/rndis-os-desc.scheme g1 2>/dev/null || true
+elif [ -f /usr/local/etc/gt/templates/rndis-os-desc.scheme ]; then
+    gt load /usr/local/etc/gt/templates/rndis-os-desc.scheme g1 2>/dev/null || true
+fi
+
+# 6. Enable gadget on ci_hdrc.0 UDC
+gt enable g1 ci_hdrc.0 2>/dev/null || gt enable g1 2>/dev/null || true
+
+# 7. Bridge usb0 to br0 (192.168.100.1)
+sleep 1
+if ip link show usb0 >/dev/null 2>&1; then
+    ip link set dev usb0 master br0 2>/dev/null || true
+    ip link set dev usb0 up 2>/dev/null || true
+fi

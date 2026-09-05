@@ -1,0 +1,510 @@
+#!/bin/bash
+# ==============================================================================
+# sbrmenu — TUI Network & Hardware Manager for OpenStick (Snapdragon 410 / MSM8916)
+# Edition: Modem-Disabled (High-RAM)
+# ==============================================================================
+
+# Pastikan tipe terminal valid untuk whiptail TUI (terutama di ADB shell)
+if [ -z "$TERM" ] || [ "$TERM" = "unknown" ] || [ "$TERM" = "dumb" ]; then
+    export TERM=xterm-256color
+fi
+
+# Pengecekan akses Root
+if [ "$EUID" -ne 0 ]; then
+    sudo TERM="${TERM:-xterm-256color}" "$0" "$@"
+    exit $?
+fi
+
+# Pastikan whiptail terinstall
+if ! command -v whiptail &> /dev/null; then
+    echo "Menginstal whiptail..."
+    apt-get update && apt-get install -y whiptail
+fi
+
+# Helper untuk mendeteksi file USB role
+get_usb_role_file() {
+    [ ! -d /sys/kernel/debug ] && mount -t debugfs none /sys/kernel/debug 2>/dev/null
+    for f in /sys/class/usb_role/ci_hdrc.0-role-switch/role /sys/devices/platform/soc@0/78d9000.usb/ci_hdrc.0/role /sys/kernel/debug/ci_hdrc.0/role; do
+        if [ -f "$f" ]; then
+            echo "$f"
+            return 0
+        fi
+    done
+    echo ""
+}
+
+get_current_usb_role() {
+    local rf=$(get_usb_role_file)
+    local r=""
+    if [ -n "$rf" ] && [ -f "$rf" ]; then
+        r=$(cat "$rf" 2>/dev/null | tr -d ' \t\n\r')
+    fi
+    if [ "$r" = "device" ] || [ "$r" = "gadget" ]; then
+        echo "gadget"
+    elif [ "$r" = "host" ]; then
+        echo "host"
+    else
+        if systemctl is-active --quiet usb-gadget-rndis.service 2>/dev/null || systemctl is-active --quiet msm8916-usb-gadget.service 2>/dev/null; then
+            echo "gadget"
+        else
+            echo "${r:-unknown}"
+        fi
+    fi
+}
+
+while true; do
+    # Cek Status DNSCrypt-Proxy
+    if systemctl is-active --quiet dnscrypt-proxy.service 2>/dev/null || pgrep -x "dnscrypt-proxy" >/dev/null 2>&1; then
+        DNS_MENU_LABEL="Kelola DNSCrypt-Proxy [AKTIF]"
+    else
+        DNS_MENU_LABEL="Aktivasi DNSCrypt-Proxy [NONAKTIF]"
+    fi
+
+    # Cek Status USB Role
+    CUR_USB=$(get_current_usb_role)
+    USB_MENU_LABEL="Atur Mode USB (Saat ini: ${CUR_USB^^})"
+    # ==========================================
+
+    # Tampilkan Menu Utama (Modem-Disabled)
+    CHOICE=$(whiptail --title "OpenStick TUI Manager (Modem-Disabled)" \
+    --menu "Pilih menu konfigurasi:" 20 70 5 \
+    "1" "Buat Hotspot (Bridge ke br0)" \
+    "2" "Aktifkan Wi-Fi Client (Auto-Fallback Darurat)" \
+    "3" "$DNS_MENU_LABEL" \
+    "4" "Install Pi-hole (Interactive Wizard)" \
+    "5" "$USB_MENU_LABEL" \
+    3>&1 1>&2 2>&3)
+
+    if [ $? != 0 ]; then
+        clear
+        exit 0
+    fi
+
+    case $CHOICE in
+        "1")
+            # --- MENU 1: BUAT HOTSPOT ---
+            SSID=$(whiptail --title "Konfigurasi Hotspot Bridge" \
+            --inputbox "Masukkan nama SSID untuk Hotspot (wlan0):" 10 60 "WiFi_Saya" \
+            3>&1 1>&2 2>&3)
+            [ $? != 0 ] && continue
+
+            PASSWORD=$(whiptail --title "Konfigurasi Hotspot Bridge" \
+            --passwordbox "Masukkan Password WPA2 Personal (minimal 8 karakter):" 10 60 \
+            3>&1 1>&2 2>&3)
+            [ $? != 0 ] && continue
+
+            if [ ${#PASSWORD} -lt 8 ]; then
+                whiptail --title "Error" --msgbox "Password gagal! WPA2 membutuhkan minimal 8 karakter." 8 50
+                continue
+            fi
+
+            {
+                echo -e "XXX\n10\nMengecek koneksi Bridge (br0)...\nXXX"
+                sleep 1
+                if ! nmcli con show "br0" > /dev/null 2>&1; then
+                    nmcli con add type bridge ifname br0 con-name br0 > /dev/null 2>&1
+                fi
+
+                echo -e "XXX\n30\nMembersihkan hotspot lama...\nXXX"
+                sleep 1
+                nmcli con delete "hotspot" > /dev/null 2>&1
+                nmcli con delete "Hotspot" > /dev/null 2>&1
+
+                echo -e "XXX\n40\nMenonaktifkan Auto-Connect Wi-Fi sebelumnya...\nXXX"
+                sleep 1
+                nmcli -g NAME,TYPE connection show | grep ":802-11-wireless" | cut -d: -f1 | while read profile; do
+                    if [ "$profile" != "hotspot" ] && [ "$profile" != "Hotspot" ]; then
+                        nmcli con modify "$profile" connection.autoconnect no connection.autoconnect-retries -1 >/dev/null 2>&1
+                    fi
+                done
+
+                echo -e "XXX\n50\nMembuat konfigurasi AP Bridge baru...\nXXX"
+                sleep 1
+                nmcli con add type wifi ifname wlan0 master br0 con-name hotspot ssid "$SSID" > /dev/null 2>&1
+                
+                echo -e "XXX\n70\nMengatur mode AP dan Keamanan WPA2 (AES-CCMP)...\nXXX"
+                sleep 1
+                nmcli con modify hotspot 802-11-wireless.mode ap 802-11-wireless.band bg 802-11-wireless.channel 1
+                nmcli con modify hotspot wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$PASSWORD"
+                nmcli con modify hotspot wifi-sec.proto rsn wifi-sec.pairwise ccmp wifi-sec.group ccmp wifi-sec.pmf disable
+                nmcli con modify hotspot connection.autoconnect yes connection.autoconnect-priority 100
+                nmcli con modify hotspot ipv4.method disabled ipv6.method disabled > /dev/null 2>&1
+
+                echo -e "XXX\n90\nMengaktifkan Hotspot di dalam Bridge...\nXXX"
+                sleep 1
+                timeout 8 nmcli con up hotspot > /dev/null 2>&1 || true
+
+                echo -e "XXX\n100\nSelesai!\nXXX"
+                sleep 1
+            } | whiptail --title "Menyimpan Pengaturan" --gauge "Sedang mengonfigurasi wlan0 ke dalam br0..." 8 60 0
+
+            whiptail --title "Berhasil" --msgbox "Hotspot '$SSID' berhasil dibuat dan di-bridge ke br0!" 8 55
+            ;;
+
+        "2")
+            # --- MENU 2: AKTIFKAN WIFI CLIENT (AUTO-FALLBACK DARURAT) ---
+            
+            # Deteksi apakah user terkoneksi via Wi-Fi (Hotspot ataupun Wi-Fi Lokal) vs RNDIS / ADB / Serial
+            CLIENT_IP=$(echo "$SSH_CLIENT" | awk '{print $1}')
+            IS_WIFI_CLIENT=0
+            
+            if [ -n "$CLIENT_IP" ]; then
+                DEV_USED=$(ip route get "$CLIENT_IP" 2>/dev/null | grep -o "dev [^ ]*" | awk '{print $2}')
+                if [ "$DEV_USED" = "wlan0" ]; then
+                    # Terkoneksi via jaringan Wi-Fi lokal (Client)
+                    IS_WIFI_CLIENT=1
+                elif [ "$DEV_USED" = "br0" ]; then
+                    # Terkoneksi via Bridge br0 (Bisa Hotspot wlan0 atau USB RNDIS usb0)
+                    CLIENT_MAC=$(ip neigh show to "$CLIENT_IP" dev br0 2>/dev/null | awk '{print $5}' | head -n 1)
+                    [ -z "$CLIENT_MAC" ] && CLIENT_MAC=$(awk -v ip="$CLIENT_IP" '$1==ip {print $4}' /proc/net/arp 2>/dev/null | head -n 1)
+
+                    # Jika terdaftar di port usb0, berarti USB RNDIS
+                    if [ -n "$CLIENT_MAC" ] && bridge fdb show dev usb0 2>/dev/null | grep -qi "$CLIENT_MAC"; then
+                        IS_WIFI_CLIENT=0
+                    # Jika terdaftar di port wlan0 atau stasiun Wi-Fi aktif, berarti Hotspot
+                    elif [ -n "$CLIENT_MAC" ] && ( bridge fdb show dev wlan0 2>/dev/null | grep -qi "$CLIENT_MAC" || iw dev wlan0 station dump 2>/dev/null | grep -qi "$CLIENT_MAC" ); then
+                        IS_WIFI_CLIENT=1
+                    elif [ "$CLIENT_IP" != "192.168.100.2" ]; then
+                        # Klien lain pada br0 selain IP default RNDIS adalah klien Wi-Fi Hotspot
+                        IS_WIFI_CLIENT=1
+                    fi
+                else
+                    # Rute lain (misal via wlan0 langsung)
+                    if iw dev wlan0 station dump 2>/dev/null | grep -q ":"; then
+                        IS_WIFI_CLIENT=1
+                    fi
+                fi
+            fi
+
+            # KONDISI 1: User terkoneksi via Wi-Fi (Hotspot maupun Wi-Fi Lokal)
+            # Sesuai arahan: fitur yang muncul hanya input manual untuk mencegah pemutusan koneksi
+            if [ $IS_WIFI_CLIENT -eq 1 ]; then
+                whiptail --title "Mode Input Manual (Koneksi Wi-Fi / Hotspot)" \
+                    --msgbox "Perangkat mendeteksi Anda terhubung melalui jaringan Wi-Fi (Hotspot atau Jaringan Lokal) dengan IP: $CLIENT_IP.\n\nUntuk mencegah koneksi SSH Anda terputus saat radio beralih, fitur pemindaian otomatis dinonaktifkan.\n\nSilakan masukkan nama SSID dan Password Wi-Fi tujuan secara manual pada layar berikutnya." 14 68
+
+                TARGET_SSID=$(whiptail --title "Input Wi-Fi Manual" \
+                    --inputbox "Masukkan nama SSID Wi-Fi tujuan (Perhatikan huruf besar/kecil):" 10 65 \
+                    3>&1 1>&2 2>&3)
+                [ $? != 0 ] || [ -z "$TARGET_SSID" ] && continue
+
+                WIFI_PASS=$(whiptail --title "Password Wi-Fi" \
+                    --passwordbox "Masukkan Password untuk Wi-Fi '$TARGET_SSID':\n(Kosongkan jika jaringan terbuka/open)" 10 65 \
+                    3>&1 1>&2 2>&3)
+                [ $? != 0 ] && continue
+
+                CONFIRM_MSG="PERINGATAN KONEKSI WI-FI:\n\n- Sesi SSH Anda AKAN SEGERA TERPUTUS saat perangkat mencoba terhubung ke '$TARGET_SSID'.\n- Proses berjalan otomatis di latar belakang.\n- Jika gagal dalam 45 detik, sistem otomatis membuat Hotspot darurat kembali (SSID: 4G-UFI-XX, Pass: 1234567890).\n\nLanjutkan menghubungkan ke '$TARGET_SSID'?"
+
+                whiptail --title "Konfirmasi Koneksi Wi-Fi" --yesno "$CONFIRM_MSG" 15 70
+                [ $? != 0 ] && continue
+
+            else
+                # KONDISI 2: User terkoneksi via USB RNDIS, ADB, atau Serial
+                # Nonaktifkan Hotspot sementara agar radio bebas scan dan SSID sendiri tidak muncul di daftar
+                {
+                    echo -e "XXX\n20\nMenonaktifkan Hotspot sementara agar radio bebas memindai...\nXXX"
+                    nmcli con down "hotspot" >/dev/null 2>&1 || nmcli con down "Hotspot" >/dev/null 2>&1 || true
+                    sleep 2
+                    echo -e "XXX\n100\nHotspot dinonaktifkan sementara (Sesi RNDIS/ADB tetap aktif).\nXXX"
+                    sleep 1
+                } | whiptail --title "Persiapan Pemindaian" --gauge "Mempersiapkan wlan0 untuk pemindaian Wi-Fi..." 8 65 0
+
+                HOTSPOT_DISABLED_BY_US=1
+                restore_hotspot_emergency() {
+                    if [ "$HOTSPOT_DISABLED_BY_US" = "1" ]; then
+                        HOTSPOT_DISABLED_BY_US=0
+                        timeout 6 nmcli con up "hotspot" >/dev/null 2>&1 || timeout 6 nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                    fi
+                }
+                trap restore_hotspot_emergency EXIT INT TERM HUP
+
+                while true; do
+                    # 1. Pindai jaringan Wi-Fi sekitar
+                    SCAN_TMP=$(mktemp)
+                    {
+                        echo -e "XXX\n30\nMengaktifkan pemindaian Wi-Fi sekitar...\nXXX"
+                        nmcli dev wifi rescan ifname wlan0 >/dev/null 2>&1 || true
+                        echo -e "XXX\n70\nMengambil daftar SSID sekitar...\nXXX"
+                        sleep 2
+                        nmcli -t -f SSID,SIGNAL,SECURITY dev wifi list ifname wlan0 > "$SCAN_TMP" 2>/dev/null || true
+                        echo -e "XXX\n100\nSelesai!\nXXX"
+                    } | whiptail --title "Memindai Wi-Fi" --gauge "Sedang memindai jaringan Wi-Fi di sekitar Anda..." 8 60 0
+
+                    # 2. Parsing daftar SSID unik, tidak kosong, dan BUKAN SSID Hotspot sendiri
+                    MENU_ITEMS=()
+                    while IFS=':' read -r S_SSID S_SIGNAL S_SEC; do
+                        [ -z "$S_SSID" ] && continue
+                        [ "$S_SSID" = "--" ] && continue
+                        [[ "$S_SSID" == 4G-UFI-* ]] && continue
+                        [[ "$S_SSID" == "WiFi_Saya" ]] && continue
+                        
+                        ALREADY=0
+                        for item in "${MENU_ITEMS[@]}"; do
+                            if [ "$item" = "$S_SSID" ]; then
+                                ALREADY=1
+                                break
+                            fi
+                        done
+                        [ $ALREADY -eq 1 ] && continue
+                        
+                        SEC_LABEL="${S_SEC:-OPEN}"
+                        MENU_ITEMS+=("$S_SSID" "[$S_SIGNAL% | $SEC_LABEL]")
+                    done < "$SCAN_TMP"
+                    rm -f "$SCAN_TMP"
+
+                    # Tambahkan opsi Manual dan Rescan
+                    MENU_ITEMS+=("__MANUAL__" "[+ Input SSID Manual / Hidden]")
+                    MENU_ITEMS+=("__RESCAN__" "[* Pindai Ulang Wi-Fi]")
+
+                    CHOSEN_SSID=$(whiptail --title "Pilih Jaringan Wi-Fi Sekitar" \
+                        --menu "Pilih Wi-Fi yang ingin dihubungkan (Gunakan panah & Enter):" 20 70 10 \
+                        "${MENU_ITEMS[@]}" \
+                        3>&1 1>&2 2>&3)
+
+                    # Jika user membatalkan (Cancel), pulihkan Hotspot tanpa hang!
+                    if [ $? != 0 ]; then
+                        {
+                            echo -e "XXX\n40\nMengaktifkan kembali Hotspot internal...\nXXX"
+                            timeout 6 nmcli con up "hotspot" >/dev/null 2>&1 || timeout 6 nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                            echo -e "XXX\n100\nSelesai!\nXXX"
+                            sleep 1
+                        } | whiptail --title "Memulihkan Hotspot" --gauge "Mengembalikan Hotspot..." 8 60 0
+                        HOTSPOT_DISABLED_BY_US=0
+                        break
+                    fi
+
+                    if [ "$CHOSEN_SSID" = "__RESCAN__" ]; then
+                        continue
+                    elif [ "$CHOSEN_SSID" = "__MANUAL__" ]; then
+                        TARGET_SSID=$(whiptail --title "Input Wi-Fi Manual" \
+                            --inputbox "Masukkan nama SSID Wi-Fi tujuan (Perhatikan huruf besar/kecil):" 10 65 \
+                            3>&1 1>&2 2>&3)
+                        if [ $? != 0 ] || [ -z "$TARGET_SSID" ]; then
+                            timeout 6 nmcli con up "hotspot" >/dev/null 2>&1 || timeout 6 nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                            HOTSPOT_DISABLED_BY_US=0
+                            continue
+                        fi
+                    else
+                        TARGET_SSID="$CHOSEN_SSID"
+                    fi
+
+                    # 3. Minta password
+                    WIFI_PASS=$(whiptail --title "Password Wi-Fi" \
+                        --passwordbox "Masukkan Password untuk Wi-Fi '$TARGET_SSID':\n(Kosongkan jika jaringan terbuka/open)" 10 65 \
+                        3>&1 1>&2 2>&3)
+
+                    if [ $? != 0 ]; then
+                        timeout 6 nmcli con up "hotspot" >/dev/null 2>&1 || timeout 6 nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                        HOTSPOT_DISABLED_BY_US=0
+                        continue
+                    fi
+
+                    CONFIRM_MSG="Perangkat mendeteksi Anda terhubung via USB RNDIS/ADB/Serial.\n\n- Hotspot telah dinonaktifkan agar radio fokus ke Wi-Fi '$TARGET_SSID'.\n- Internet dari Wi-Fi '$TARGET_SSID' akan langsung disalurkan ke PC Anda (USB Wi-Fi Dongle).\n- Sesi SSH/ADB via USB RNDIS ini TIDAK AKAN TERPUTUS.\n\nLanjutkan menghubungkan ke '$TARGET_SSID'?"
+
+                    whiptail --title "Konfirmasi Koneksi Wi-Fi" --yesno "$CONFIRM_MSG" 16 70
+                    if [ $? != 0 ]; then
+                        timeout 6 nmcli con up "hotspot" >/dev/null 2>&1 || timeout 6 nmcli con up "Hotspot" >/dev/null 2>&1 || true
+                        HOTSPOT_DISABLED_BY_US=0
+                        continue
+                    fi
+
+                    break
+                done
+
+                trap - EXIT INT TERM HUP
+
+                [ -z "$TARGET_SSID" ] && continue
+            fi
+
+            # 5. Background connection script (dengan fallback darurat)
+            cat << 'INNER_EOF' > /tmp/wifi_connect_bg.sh
+#!/bin/bash
+TARGET="$1"
+PASS="$2"
+
+nmcli con delete "$TARGET" >/dev/null 2>&1
+nmcli con delete "hotspot" >/dev/null 2>&1
+nmcli con delete "Hotspot" >/dev/null 2>&1
+nmcli device disconnect wlan0 >/dev/null 2>&1
+sleep 3
+
+if [ -z "$PASS" ]; then
+    nmcli dev wifi connect "$TARGET" ifname wlan0 >/dev/null 2>&1
+else
+    nmcli dev wifi connect "$TARGET" password "$PASS" ifname wlan0 >/dev/null 2>&1
+fi
+
+sleep 25
+
+STATE=$(nmcli -g GENERAL.STATE dev show wlan0 2>/dev/null)
+if [[ "$STATE" != *"100 (connected)"* ]]; then
+    nmcli con delete "$TARGET" >/dev/null 2>&1
+    nmcli device disconnect wlan0 >/dev/null 2>&1
+    sleep 2
+
+    if ! nmcli con show "br0" > /dev/null 2>&1; then
+        nmcli con add type bridge ifname br0 con-name br0 > /dev/null 2>&1
+    fi
+    
+    nmcli con add type wifi ifname wlan0 master br0 con-name hotspot ssid "4G-UFI-XX" >/dev/null 2>&1
+    nmcli con modify hotspot 802-11-wireless.mode ap 802-11-wireless.band bg 802-11-wireless.channel 1
+    nmcli con modify hotspot wifi-sec.key-mgmt wpa-psk wifi-sec.psk "1234567890"
+    nmcli con modify hotspot wifi-sec.proto rsn wifi-sec.pairwise ccmp wifi-sec.group ccmp wifi-sec.pmf disable
+    nmcli con modify hotspot connection.autoconnect yes connection.autoconnect-priority 100
+    nmcli con modify hotspot ipv4.method disabled ipv6.method disabled >/dev/null 2>&1
+    timeout 8 nmcli con up hotspot >/dev/null 2>&1 || true
+else
+    nmcli connection modify "$TARGET" connection.autoconnect yes connection.autoconnect-retries 0 >/dev/null 2>&1
+    systemctl restart NetworkManager
+fi
+INNER_EOF
+            chmod +x /tmp/wifi_connect_bg.sh
+            nohup /tmp/wifi_connect_bg.sh "$TARGET_SSID" "$WIFI_PASS" </dev/null >/dev/null 2>&1 &
+            disown
+
+            if [ $IS_WIFI_CLIENT -eq 1 ]; then
+                whiptail --title "Proses Berjalan!" --msgbox "Perintah telah dikirim ke latar belakang.\n\nKarena Anda terhubung via Wi-Fi, koneksi terminal ini akan terputus sebentar lagi.\n\nSilakan tunggu ~45 detik. Jika gagal terhubung ke Wi-Fi tujuan, sambungkan kembali ke Hotspot darurat '4G-UFI-XX' (Pass: 1234567890)." 14 65
+                clear
+                exit 0
+            else
+                whiptail --title "Menghubungkan" --msgbox "Perintah telah dikirim!\n\nPerangkat sedang menghubungkan ke Wi-Fi '$TARGET_SSID'.\nFungsi internet USB Wi-Fi Dongle akan aktif dalam beberapa detik tanpa memutus sesi RNDIS Anda." 12 60
+            fi
+            ;;
+
+        "3")
+            # --- MENU 3: KELOLA DNSCRYPT-PROXY ---
+            if [ ! -f "/opt/dnscrypt-proxy/dnscrypt-proxy" ]; then
+                whiptail --title "Error" --msgbox "Executable dnscrypt-proxy tidak ditemukan di /opt/dnscrypt-proxy/dnscrypt-proxy!" 10 65
+                continue
+            fi
+
+            IS_DNS_RUNNING="Nonaktif"
+            if systemctl is-active --quiet dnscrypt-proxy.service 2>/dev/null || pgrep -x "dnscrypt-proxy" >/dev/null 2>&1; then
+                IS_DNS_RUNNING="AKTIF (Running)"
+            fi
+
+            DNS_ACTION=$(whiptail --title "Kelola DNSCrypt-Proxy (Cloudflare DoH)" \
+            --menu "Status Saat ini: $IS_DNS_RUNNING\nListening: 127.0.0.1:5353\n\nPilih tindakan:" 18 65 4 \
+            "1" "Aktifkan & Enable Service (Start DoH)" \
+            "2" "Matikan Service (Stop DoH)" \
+            "3" "Restart DNSCrypt-Proxy" \
+            "4" "Uji Coba Resolusi DNS (Test Query)" \
+            3>&1 1>&2 2>&3)
+
+            [ $? != 0 ] && continue
+
+            case $DNS_ACTION in
+                "1")
+                    {
+                        echo -e "XXX\n20\nMenyiapkan file konfigurasi service...\nXXX"
+                        sleep 1
+                        if [ ! -f "/etc/systemd/system/dnscrypt-proxy.service" ]; then
+                            /opt/dnscrypt-proxy/dnscrypt-proxy -service install >/dev/null 2>&1 || true
+                        fi
+                        echo -e "XXX\n60\nMengaktifkan service systemd...\nXXX"
+                        systemctl daemon-reload >/dev/null 2>&1
+                        systemctl enable dnscrypt-proxy.service >/dev/null 2>&1
+                        systemctl start dnscrypt-proxy.service >/dev/null 2>&1
+                        sleep 2
+                        echo -e "XXX\n100\nSelesai!\nXXX"
+                        sleep 1
+                    } | whiptail --title "Aktivasi DNSCrypt-Proxy" --gauge "Sedang mengaktifkan DNSCrypt-Proxy..." 8 60 0
+                    whiptail --title "Sukses" --msgbox "DNSCrypt-Proxy berhasil diaktifkan pada 127.0.0.1:5353!" 8 60
+                    ;;
+                "2")
+                    systemctl stop dnscrypt-proxy.service >/dev/null 2>&1
+                    systemctl disable dnscrypt-proxy.service >/dev/null 2>&1
+                    pkill -f dnscrypt-proxy 2>/dev/null || true
+                    whiptail --title "Informasi" --msgbox "DNSCrypt-Proxy telah dimatikan." 8 50
+                    ;;
+                "3")
+                    systemctl restart dnscrypt-proxy.service >/dev/null 2>&1
+                    whiptail --title "Informasi" --msgbox "DNSCrypt-Proxy telah di-restart." 8 50
+                    ;;
+                "4")
+                    whiptail --title "Harap Tunggu" --infobox "Melakukan DNS Query ke 127.0.0.1:5353..." 8 55
+                    TEST_RES=$(nslookup -port=5353 google.com 127.0.0.1 2>&1 || dig @127.0.0.1 -p 5353 google.com +short 2>&1 || curl -s --resolve cloudflare.com:5353:127.0.0.1 https://cloudflare.com 2>&1 | head -n 5)
+                    whiptail --title "Hasil Uji Coba DNS" --scrolltext --msgbox "Hasil Pengujian Query:\n\n$TEST_RES" 16 65
+                    ;;
+            esac
+            ;;
+
+        "4")
+            # --- MENU 4: INSTALL PI-HOLE ---
+            whiptail --title "Konfirmasi Instalasi" --yesno "Anda akan menginstal Pi-hole.\n\nPERHATIAN:\nProses ini membutuhkan koneksi internet aktif dan akan membuka jendela pengaturan (Wizard) interaktif bawaan Pi-hole.\n\nApakah Anda ingin melanjutkan instalasi sekarang?" 12 65
+            
+            if [ $? -eq 0 ]; then
+                clear
+                echo "========================================================="
+                echo "Memulai instalasi Pi-hole. Mohon tunggu..."
+                echo "========================================================="
+                
+                curl -sSL https://install.pi-hole.net | bash
+                
+                echo ""
+                echo "========================================================="
+                echo "Proses instalasi/konfigurasi Pi-hole telah selesai."
+                echo "Tekan ENTER untuk kembali ke menu utama..."
+                read -r
+            fi
+            ;;
+
+        "5")
+            # --- MENU 5: ATUR MODE USB ---
+            ROLE_FILE=$(get_usb_role_file)
+            CUR_ROLE=$(get_current_usb_role)
+
+            USB_CHOICE=$(whiptail --title "Atur Mode USB (Hardware Role)" \
+            --menu "Status Mode USB Saat Ini: ${CUR_ROLE^^}\nPath sysfs: ${ROLE_FILE:-'(Not found)'}\n\nPilih mode USB yang diinginkan:" 18 68 3 \
+            "1" "Switch ke Mode Gadget (Default USB Dongle / RNDIS)" \
+            "2" "Switch ke Mode Host OTG (Flashdisk/Keyboard/Hub)" \
+            "3" "Set Default Boot Mode (Permanen saat Startup)" \
+            3>&1 1>&2 2>&3)
+
+            [ $? != 0 ] && continue
+
+            case $USB_CHOICE in
+                "1")
+                    {
+                        echo -e "XXX\n30\nMengaktifkan role Gadget...\nXXX"
+                        if [ -n "$ROLE_FILE" ]; then
+                            echo device > "$ROLE_FILE" 2>/dev/null || echo gadget > "$ROLE_FILE" 2>/dev/null || true
+                        fi
+                        sleep 1
+                        echo -e "XXX\n70\nMemulai service msm8916-usb-gadget...\nXXX"
+                        systemctl restart usb-gadget-rndis.service >/dev/null 2>&1 || /usr/sbin/usb-gadget-rndis >/dev/null 2>&1 || true
+                        echo -e "XXX\n100\nSelesai!\nXXX"
+                        sleep 1
+                    } | whiptail --title "USB Gadget Mode" --gauge "Mengalihkan ke Mode Gadget..." 8 60 0
+                    whiptail --title "Sukses" --msgbox "Perangkat berhasil dialihkan ke Mode Gadget (RNDIS / ACM Serial / UMS)!" 8 65
+                    ;;
+                "2")
+                    {
+                        echo -e "XXX\n30\nMenonaktifkan service USB Gadget...\nXXX"
+                        systemctl stop msm8916-usb-gadget.service >/dev/null 2>&1 || true
+                        sleep 1
+                        echo -e "XXX\n70\nMengaktifkan role Host OTG...\nXXX"
+                        if [ -n "$ROLE_FILE" ]; then
+                            echo host > "$ROLE_FILE" 2>/dev/null || true
+                        fi
+                        echo -e "XXX\n100\nSelesai!\nXXX"
+                        sleep 1
+                    } | whiptail --title "USB Host OTG Mode" --gauge "Mengalihkan ke Mode Host OTG..." 8 60 0
+                    whiptail --title "Sukses" --msgbox "Perangkat berhasil dialihkan ke Mode Host OTG!\n\nAnda kini dapat mencolokkan Flashdisk, Keyboard, atau USB Hub melalui kabel OTG." 10 65
+                    ;;
+                "3")
+                    BOOT_DEF=$(whiptail --title "Set Default USB Boot Mode" \
+                    --menu "Pilih mode default yang aktif setiap kali perangkat dinyalakan:" 14 65 2 \
+                    "gadget" "Mode Gadget (RNDIS USB Dongle - Disarankan)" \
+                    "host" "Mode Host OTG (Membaca Flashdisk/Periferal)" \
+                    3>&1 1>&2 2>&3)
+                    
+                    if [ $? -eq 0 ] && [ -n "$BOOT_DEF" ]; then
+                        echo "MODE=\"$BOOT_DEF\"" > /etc/default/usb-mode
+                        systemctl enable usb-mode-init.service >/dev/null 2>&1 || true
+                        whiptail --title "Pengaturan Tersimpan" --msgbox "Default boot mode USB berhasil diatur ke: ${BOOT_DEF^^}.\nPengaturan ini akan diterapkan otomatis setiap kali boot." 8 65
+                    fi
+                    ;;
+            esac
+            ;;
+    esac
+done

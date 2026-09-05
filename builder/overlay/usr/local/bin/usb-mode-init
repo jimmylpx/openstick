@@ -1,0 +1,32 @@
+#!/bin/bash
+# ==============================================================================
+# OpenStick USB Hardware Role Initializer (msm8916 ChipIdea USB)
+# ==============================================================================
+
+if [ ! -d /sys/kernel/debug/usb ] && [ ! -d /sys/kernel/debug/ci_hdrc.0 ]; then
+    mount -t debugfs none /sys/kernel/debug 2>/dev/null || true
+fi
+
+ROLE_FILE=""
+for f in /sys/kernel/debug/usb/ci_hdrc.0/role /sys/kernel/debug/ci_hdrc.0/role /sys/class/usb_role/ci_hdrc.0-role/role; do
+    if [ -f "$f" ]; then
+        ROLE_FILE="$f"
+        break
+    fi
+done
+
+MODE="gadget"
+if [ -f /etc/default/usb-mode ]; then
+    . /etc/default/usb-mode
+fi
+
+if [ -n "$ROLE_FILE" ]; then
+    if [ "$MODE" = "host" ]; then
+        logger -t usb-mode-init "Setting USB Role to HOST mode"
+        echo host > "$ROLE_FILE" 2>/dev/null || true
+        systemctl stop msm8916-usb-gadget.service >/dev/null 2>&1 || true
+    else
+        logger -t usb-mode-init "Setting USB Role to GADGET mode"
+        echo gadget > "$ROLE_FILE" 2>/dev/null || true
+    fi
+fi

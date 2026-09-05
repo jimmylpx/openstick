@@ -1,0 +1,13 @@
+[Unit]
+Description=LongQT Native USB Gadget RNDIS Service
+After=usb-mode-init.service sys-kernel-config.mount networking.service
+Before=network.target
+Requires=sys-kernel-config.mount
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/usb-gadget-rndis
+
+[Install]
+WantedBy=multi-user.target

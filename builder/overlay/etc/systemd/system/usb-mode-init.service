@@ -1,0 +1,13 @@
+[Unit]
+Description=MSM8916 USB Role Initialization (Host / Gadget Mode)
+DefaultDependencies=no
+After=systemd-modules-load.service sys-kernel-debug.mount
+Before=msm8916-usb-gadget.service basic.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/usb-mode-init
+
+[Install]
+WantedBy=basic.target
