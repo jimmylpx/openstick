@@ -17,7 +17,6 @@ usbutils
 pciutils
 locales
 ca-certificates
-fastfetch
 iptables
 nftables
 iproute2

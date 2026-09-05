@@ -104,6 +104,7 @@ fi
 chmod u+s /bin/ping 2>/dev/null || chmod u+s /usr/bin/ping 2>/dev/null || true
 
 # 6. Izin eksekusi script & biner OpenStick
+chmod +x /usr/bin/fastfetch 2>/dev/null || true
 chmod +x /usr/bin/gt 2>/dev/null || true
 chmod +x /usr/bin/adbd 2>/dev/null || true
 chmod +x /usr/sbin/adbd 2>/dev/null || true

@@ -58,10 +58,6 @@ apt-get install -y --no-install-recommends "$@" || {
         apt-get install -y --no-install-recommends "$p" 2>/dev/null || true
     done
 }
-# Install fastfetch from backports if needed
-if ! command -v fastfetch >/dev/null 2>&1; then
-    apt-get install -y -t "${BASE_DISTRO}-backports" --no-install-recommends fastfetch 2>/dev/null || apt-get install -y --no-install-recommends fastfetch 2>/dev/null || true
-fi
 apt-get autoremove -y --purge
 apt-get clean
 rm -rf /var/lib/apt/lists/*
