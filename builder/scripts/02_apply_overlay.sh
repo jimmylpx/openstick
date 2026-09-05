@@ -214,6 +214,9 @@ chmod 755 "${MNT}/etc/profile.d/00-motd-fastfetch.sh" 2>/dev/null || true
 chmod -R 755 "${MNT}/lib/firmware" 2>/dev/null || true
 chmod 600 "${MNT}/etc/ssh/"*_key 2>/dev/null || true
 chmod 644 "${MNT}/etc/ssh/"*.pub 2>/dev/null || true
+chmod 700 "${MNT}/etc/NetworkManager/system-connections" 2>/dev/null || true
+chmod 600 "${MNT}/etc/NetworkManager/system-connections/"* 2>/dev/null || true
+chown -R root:root "${MNT}/etc/NetworkManager/system-connections" 2>/dev/null || true
 
 echo "openstick" > "${MNT}/etc/hostname"
 
