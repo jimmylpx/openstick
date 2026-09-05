@@ -1,0 +1,10 @@
+# custom_packages.list - Daftar paket Debian tambahan kustom Anda
+# Hapus tanda pagar (#) pada paket yang ingin Anda pasang secara otomatis saat build:
+#
+# nginx
+# docker.io
+# tmux
+# python3-pip
+# wireguard
+# iperf3
+# git

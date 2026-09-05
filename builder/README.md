@@ -1,70 +1,74 @@
 # OpenStick Debian Firmware Builder
 
-Build system modular dan terverifikasi untuk membangun firmware kustom **OpenStick Qualcomm Snapdragon 410 (MSM8916)** berbasis **Debian GNU/Linux (ARM64)** secara mandiri.
-
-Build system ini mengadopsi metode pembangunan dan in-place patching yang terbukti berhasil dan stabil pada hardware OpenStick fisik, mendukung 4 varian target:
-1. **Debian 12 Bookworm (Standar)** — 4G LTE Modem aktif (RAM ~390MB).
-2. **Debian 12 Bookworm (Modem-Disabled)** — Modem nonaktif, memori dimaksimalkan untuk server/homelab (RAM ~466MB).
-3. **Debian 13 Trixie (Standar)** — 4G LTE Modem aktif dengan paket Debian 13 terbaru.
-4. **Debian 13 Trixie (Modem-Disabled)** — Modem nonaktif pada Debian 13 (RAM ~466MB).
+Build system modular dan terverifikasi untuk membangun dan mengkustomisasi firmware **OpenStick Qualcomm Snapdragon 410 (MSM8916)** berbasis **Debian GNU/Linux (ARM64)** secara mandiri langsung dari repositori GitHub.
 
 ---
 
-## Struktur Direktori
+## 🎨 Apa Saja yang Bisa Dikustomisasi oleh Pengguna?
+
+Builder ini dirancang sangat modular agar siapa saja dapat membuat varian Linux sesuai kebutuhan homelab atau server mereka tanpa merusak kompatibilitas hardware:
+
+### 1. Menambah / Mengubah File Sistem (`builder/overlay/`)
+Struktur folder di dalam `builder/overlay/` mencerminkan struktur root Linux (`/`). Setiap file atau folder yang Anda letakkan di sini akan langsung ditimpa (*overlay*) ke dalam sistem operasi target:
+- **Layanan Systemd Baru:** Letakkan file `.service` di `builder/overlay/etc/systemd/system/`.
+- **Script / Biner Eksekusi:** Letakkan skrip Anda di `builder/overlay/usr/local/bin/` (akan otomatis diberi izin `chmod +x`).
+- **Konfigurasi Jaringan & Wi-Fi:** Ubah koneksi default di `builder/overlay/etc/NetworkManager/system-connections/`.
+- **MOTD / Login Banner:** Edit `builder/overlay/etc/profile.d/00-motd-fastfetch.sh`.
+- **Menu TUI:** Ubah atau tambahkan menu di `builder/overlay/usr/local/bin/sbrmenu`.
+
+### 2. Memasang Paket Debian Tambahan (`builder/config/custom_packages.list`)
+Ingin menyertakan aplikasi seperti `docker`, `nginx`, `tmux`, `python3-pip`, `wireguard`, atau `iperf3` ke dalam image?
+1. Buat file `builder/config/custom_packages.list` (tersedia template `custom_packages.list.example`).
+2. Tulis nama paket Debian (satu per baris).
+3. Saat Anda menjalankan `./build.sh`, builder akan otomatis memasang paket-paket tersebut ke dalam image firmware menggunakan emulator QEMU ARM64.
+
+### 3. Skrip Hook Otomatisasi (`builder/hooks/custom.sh`)
+Jika Anda membutuhkan perintah shell kustom yang dieksekusi di dalam rootfs sebelum firmware dikemas (misalnya membuat user baru, mengatur password default kustom, clone repo git, mengaktifkan service tertentu):
+1. Buat file `builder/hooks/custom.sh` (tersedia template `custom.sh.example`).
+2. Beri izin eksekusi (`chmod +x builder/hooks/custom.sh`).
+3. Skrip akan dijalankan secara otomatis di dalam chroot ARM64.
+
+### 4. Mengganti Kernel / Device Tree (`builder/firmware/`)
+Jika Anda memiliki kernel Linux kustom atau file Device Tree (`.dtb`) untuk varian modem stick Snapdragon 410 baru, Anda cukup mengganti file `boot.bin` atau `boot_modem_disabled.bin` di folder `builder/firmware/`.
+
+---
+
+## 📁 Struktur Direktori
 
 ```text
 builder/
 ├── build.sh                   # Script utama build otomatis
 ├── README.md                  # Panduan build & kustomisasi
-├── base/                      # Base rootfs OpenStick terverifikasi (auto-download jika belum ada)
+├── base/                      # Base rootfs OpenStick terverifikasi (auto-download saat pertama kali build)
 │   └── rootfs.bin             # Image ext4 kompatibel MSM8916 (732.356.608 bytes)
+├── config/
+│   ├── packages.list          # Daftar paket esensial bawaan distro
+│   └── custom_packages.list   # (Opsional) Daftar paket tambahan kustom pengguna
 ├── firmware/                  # Biner bootloader Qualcomm & kernel boot.bin
 │   ├── aboot.mbn
 │   ├── boot.bin               # Linux Kernel 6.12.x Standar (Modem Aktif)
 │   ├── boot_modem_disabled.bin# Linux Kernel 6.12.x Modem-Disabled (~85MB reclaimed RAM)
-│   ├── gpt_both0.bin, hyp.mbn, rpm.mbn, sbl1.mbn, tz.mbn
-│   ├── modules.tar.gz         # Modul kernel Qualcomm MSM8916
-│   └── firmware.tar.gz        # Firmware modem & Wi-Fi Qualcomm
+│   └── gpt_both0.bin, hyp.mbn, rpm.mbn, sbl1.mbn, tz.mbn
+├── hooks/
+│   ├── custom.sh.example      # Template hook eksekusi kustom pengguna
+│   └── custom.sh              # (Opsional) Skrip hook kustom Anda
 ├── overlay/                   # Filesystem overlay (diterapkan ke rootfs)
 │   ├── etc/
-│   │   ├── profile.d/
-│   │   │   └── 00-motd-fastfetch.sh        # MOTD banner & info fastfetch
-│   │   ├── systemd/system/
-│   │   │   ├── adbd.service                # Layanan daemon ADB (User level)
-│   │   │   ├── openstick-wifi-watchdog.service # Auto fallback Wi-Fi
-│   │   │   ├── resize-rootfs.service       # Layanan auto-expand filesystem (~3.5 GB)
-│   │   │   ├── usb-gadget-rndis.service    # Layanan USB Gadget RNDIS network
-│   │   │   └── usb-mode-init.service       # Inisialisasi hardware role USB
-│   │   └── udev/rules.d/
-│   │       └── 99-qualcomm.rules           # Aturan izin USB Modem Qualcomm
-│   └── usr/
-│       ├── local/bin/
-│       │   ├── openstick-wifi-watchdog     # Skrip watchdog Wi-Fi client / hotspot
-│       │   ├── py_adbd.py                  # Zero-Auth ADB Daemon
-│       │   ├── sbrmenu                     # TUI Manager Versi Standar (4G/SMS)
-│       │   ├── sbrmenu_modem_disabled      # TUI Manager Versi Modem-Disabled
-│       │   └── usb-mode-init               # Skrip switch mode host / gadget
-│       └── sbin/
-│           └── usb-gadget-rndis            # Skrip inisialisasi USB RNDIS & IP
+│   │   ├── profile.d/         # MOTD banner & info fastfetch
+│   │   ├── systemd/system/    # Layanan systemd kustom (adbd, watchdog, usb-gadget)
+│   │   └── NetworkManager/    # Konfigurasi hotspot, wifi, lte
+│   ├── opt/dnscrypt-proxy/    # Biner DNSCrypt-Proxy DoH
+│   └── usr/local/bin/         # sbrmenu, py_adbd.py, openstick-wifi-watchdog
 └── scripts/
     ├── 01_prepare_base.sh     # Menyiapkan base rootfs terverifikasi
-    ├── 02_apply_overlay.sh    # Pemasangan overlay, services, & konfigurasi distro
+    ├── 02_apply_overlay.sh    # Pemasangan overlay, paket kustom, & konfigurasi distro
     ├── 03_build_kernel_boot.sh# Menyiapkan partisi bootloader & boot.bin
     └── 04_pack_release.sh     # Pengemasan file rilis zip siap flash
 ```
 
 ---
 
-## 🛠️ Persyaratan Sistem Komputer Build
-
-Build system ini berjalan di OS **Debian / Ubuntu / Linux Mint / Raspberry Pi OS (Linux x86_64 atau ARM64)**.
-
-> [!TIP]
-> **Otomatis:** Script `build.sh` sudah dilengkapi fitur **Auto Host Check & Installer**. Jika dependensi pendukung (`zip`, `unzip`, `curl`, `e2fsprogs`) belum terpasang, script akan otomatis memasangnya via `apt-get` saat dijalankan dengan `sudo`.
-
----
-
-## Cara Membangun Firmware
+## 🚀 Cara Membangun Firmware
 
 Jalankan `build.sh` dengan memilih target varian yang diinginkan:
 
@@ -73,7 +77,7 @@ Jalankan `build.sh` dengan memilih target varian yang diinginkan:
 sudo ./build.sh --target bookworm
 ```
 
-### 2. Build Debian 12 Bookworm Modem-Disabled:
+### 2. Build Debian 12 Bookworm Modem-Disabled (Max RAM):
 ```bash
 sudo ./build.sh --target bookworm-modem-disabled
 ```
@@ -83,12 +87,12 @@ sudo ./build.sh --target bookworm-modem-disabled
 sudo ./build.sh --target trixie
 ```
 
-### 4. Build Debian 13 Trixie Modem-Disabled:
+### 4. Build Debian 13 Trixie Modem-Disabled (Max RAM):
 ```bash
 sudo ./build.sh --target trixie-modem-disabled
 ```
 
-### 5. Build Seluruh Varian Sekaligus:
+### 5. Build Seluruh 4 Varian Sekaligus:
 ```bash
 sudo ./build.sh --target all
 ```

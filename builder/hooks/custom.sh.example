@@ -1,0 +1,11 @@
+#!/bin/bash
+# custom.sh.example - Hook kustom yang dijalankan di dalam rootfs (chroot ARM64)
+# Ganti nama file ini menjadi `custom.sh` dan beri izin eksekusi (`chmod +x custom.sh`)
+# Script ini akan otomatis dijalankan saat proses build sebelum rootfs dikemas.
+#
+# Contoh penggunaan:
+# echo "Menjalankan konfigurasi kustom..."
+# useradd -m -s /bin/bash customuser
+# echo "customuser:password123" | chpasswd
+# usermod -aG sudo customuser
+# systemctl enable custom-service.service

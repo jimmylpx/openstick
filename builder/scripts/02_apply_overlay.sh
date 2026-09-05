@@ -8,9 +8,10 @@ BASE_DISTRO="$3"
 IS_MODEM_DISABLED="$4"
 BUILD_DIR="$5"
 VARIANT="$6"
+SCRIPT_ROOT="$7"
 
 if [ -z "$MNT" ] || [ -z "$OVERLAY_DIR" ] || [ -z "$BUILD_DIR" ]; then
-    echo "Usage: $0 MNT_ROOTFS OVERLAY_DIR BASE_DISTRO IS_MODEM_DISABLED BUILD_DIR VARIANT"
+    echo "Usage: $0 MNT_ROOTFS OVERLAY_DIR BASE_DISTRO IS_MODEM_DISABLED BUILD_DIR VARIANT SCRIPT_ROOT"
     exit 1
 fi
 
@@ -22,19 +23,16 @@ cp -a "${OVERLAY_DIR}/." "${MNT}/"
 # 1. Konfigurasi Khusus Varian Modem
 if [ "$IS_MODEM_DISABLED" -eq 1 ]; then
     echo "--> [2/4] Mengonfigurasi varian Modem-Disabled (Max RAM)..."
-    # Pasang sbrmenu khusus modem-disabled (tanpa opsi 4G LTE & SMS)
     if [ -f "${OVERLAY_DIR}/usr/local/bin/sbrmenu_modem_disabled" ]; then
         cp -fv "${OVERLAY_DIR}/usr/local/bin/sbrmenu_modem_disabled" "${MNT}/usr/local/bin/sbrmenu"
     fi
 
-    # Nonaktifkan ModemManager, rmtfs, dan qrtr-ns untuk menghemat RAM dan CPU
     rm -f "${MNT}/etc/systemd/system/multi-user.target.wants/ModemManager.service"
     ln -sf /dev/null "${MNT}/etc/systemd/system/ModemManager.service"
     ln -sf /dev/null "${MNT}/etc/systemd/system/dbus-org.freedesktop.ModemManager1.service"
     ln -sf /dev/null "${MNT}/etc/systemd/system/rmtfs.service"
     ln -sf /dev/null "${MNT}/etc/systemd/system/qrtr-ns.service"
 
-    # Perbarui MOTD Fastfetch
     cat << 'EOF' > "${MNT}/etc/profile.d/00-motd-fastfetch.sh"
 [ -z "$TERM" ] || [ "$TERM" = "unknown" ] && export TERM=xterm-256color
 if [ -t 1 ] && [ -n "$PS1" ]; then
@@ -116,7 +114,61 @@ UPGRADE_SH
     fi
 fi
 
-# 3. Layanan Systemd Esensial & Konfigurasi Booting
+# 3. Instalasi Paket Tambahan Pengguna (Optional Custom Packages)
+CUSTOM_PKGS_FILE="${SCRIPT_ROOT}/config/custom_packages.list"
+if [ -f "${CUSTOM_PKGS_FILE}" ]; then
+    PKGS_TO_INSTALL=$(grep -v '^#' "${CUSTOM_PKGS_FILE}" | grep -v '^[[:space:]]*$' | tr '\n' ' ' || true)
+    if [ -n "${PKGS_TO_INSTALL}" ]; then
+        echo "--> [2/4] Memasang paket kustom pengguna dari config/custom_packages.list: ${PKGS_TO_INSTALL}..."
+        cp /usr/bin/qemu-aarch64-static "${MNT}/usr/bin/" 2>/dev/null || true
+        rm -f "${MNT}/etc/resolv.conf"
+        echo "nameserver 8.8.8.8" > "${MNT}/etc/resolv.conf"
+
+        mount --bind /dev "${MNT}/dev"
+        mount --bind /dev/pts "${MNT}/dev/pts"
+        mount -t proc proc "${MNT}/proc"
+        mount -t sysfs sys "${MNT}/sys"
+
+        cat << 'CHROOT_PKGS' > "${MNT}/tmp/install_custom_pkgs.sh"
+#!/bin/bash
+export DEBIAN_FRONTEND=noninteractive
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+apt-get update -qq
+apt-get install -y --no-install-recommends "$@"
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+CHROOT_PKGS
+        chmod +x "${MNT}/tmp/install_custom_pkgs.sh"
+        chroot "${MNT}" /tmp/install_custom_pkgs.sh ${PKGS_TO_INSTALL} || echo "[!] Peringatan: Beberapa paket kustom mungkin gagal dipasang."
+        rm -f "${MNT}/tmp/install_custom_pkgs.sh" "${MNT}/usr/bin/qemu-aarch64-static"
+
+        umount -l "${MNT}/dev/pts" 2>/dev/null || true
+        umount -l "${MNT}/dev" 2>/dev/null || true
+        umount -l "${MNT}/proc" 2>/dev/null || true
+        umount -l "${MNT}/sys" 2>/dev/null || true
+
+        rm -f "${MNT}/etc/resolv.conf"
+        ln -sf /run/systemd/resolve/resolv.conf "${MNT}/etc/resolv.conf" 2>/dev/null || echo "nameserver 1.1.1.1" > "${MNT}/etc/resolv.conf"
+    fi
+fi
+
+# 4. Eksekusi Custom Hook Pengguna (Optional Post-Install Hook)
+CUSTOM_HOOK="${SCRIPT_ROOT}/hooks/custom.sh"
+if [ -f "${CUSTOM_HOOK}" ] && [ -x "${CUSTOM_HOOK}" ]; then
+    echo "--> [2/4] Menjalankan custom hook pengguna: hooks/custom.sh..."
+    cp /usr/bin/qemu-aarch64-static "${MNT}/usr/bin/" 2>/dev/null || true
+    cp "${CUSTOM_HOOK}" "${MNT}/tmp/custom_hook.sh"
+    mount --bind /dev "${MNT}/dev"
+    mount -t proc proc "${MNT}/proc"
+    mount -t sysfs sys "${MNT}/sys"
+    chroot "${MNT}" /tmp/custom_hook.sh || echo "[!] Peringatan: Hook kustom selesai dengan status non-nol."
+    rm -f "${MNT}/tmp/custom_hook.sh" "${MNT}/usr/bin/qemu-aarch64-static"
+    umount -l "${MNT}/dev" 2>/dev/null || true
+    umount -l "${MNT}/proc" 2>/dev/null || true
+    umount -l "${MNT}/sys" 2>/dev/null || true
+fi
+
+# 5. Layanan Systemd Esensial & Konfigurasi Booting
 echo "--> [2/4] Mengaktifkan layanan auto-expand rootfs & USB networking..."
 mkdir -p "${MNT}/etc/systemd/system/sysinit.target.wants"
 ln -sf /etc/systemd/system/resize-rootfs.service "${MNT}/etc/systemd/system/sysinit.target.wants/resize-rootfs.service"
@@ -126,12 +178,10 @@ ln -sf /etc/systemd/system/openstick-wifi-watchdog.service "${MNT}/etc/systemd/s
 ln -sf /etc/systemd/system/usb-mode-init.service "${MNT}/etc/systemd/system/multi-user.target.wants/usb-mode-init.service"
 ln -sf /etc/systemd/system/adbd.service "${MNT}/etc/systemd/system/multi-user.target.wants/adbd.service"
 
-# Pastikan /etc/machine-id kosong (0 byte) agar systemd membuat ID unik pada first boot
 touch "${MNT}/etc/machine-id"
 chmod 444 "${MNT}/etc/machine-id"
 chown root:root "${MNT}/etc/machine-id"
 
-# Atur perizinan file eksekusi dan SSH keys
 chmod 755 "${MNT}/usr/local/bin/"* 2>/dev/null || true
 chmod 755 "${MNT}/usr/sbin/usb-gadget-rndis" 2>/dev/null || true
 chmod 755 "${MNT}/etc/profile.d/00-motd-fastfetch.sh" 2>/dev/null || true
@@ -139,14 +189,12 @@ chmod -R 755 "${MNT}/lib/firmware" 2>/dev/null || true
 chmod 600 "${MNT}/etc/ssh/"*_key 2>/dev/null || true
 chmod 644 "${MNT}/etc/ssh/"*.pub 2>/dev/null || true
 
-# Pastikan hostname default adalah openstick
 echo "openstick" > "${MNT}/etc/hostname"
 
 sync
 echo "--> [2/4] Melepaskan mount rootfs..."
 umount "${MNT}"
 
-# Verifikasi dan perbaiki integritas filesystem
 tune2fs -L rootfs "${ROOTFS_IMG}"
 e2fsck -fy "${ROOTFS_IMG}" || true
 

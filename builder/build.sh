@@ -135,7 +135,7 @@ build_variant() {
 
     # 2. Terapkan Overlay, Services, & User Config secara in-place
     echo ">>> [2/4] Menerapkan OpenStick Overlay, Services, & User Config..."
-    bash "${SCRIPT_DIR}/scripts/02_apply_overlay.sh" "${BUILD_DIR}/mnt_rootfs" "${SCRIPT_DIR}/overlay" "${BASE_DISTRO}" "${IS_MODEM_DISABLED}" "${BUILD_DIR}" "${VARIANT}"
+    bash "${SCRIPT_DIR}/scripts/02_apply_overlay.sh" "${BUILD_DIR}/mnt_rootfs" "${SCRIPT_DIR}/overlay" "${BASE_DISTRO}" "${IS_MODEM_DISABLED}" "${BUILD_DIR}" "${VARIANT}" "${SCRIPT_DIR}"
 
     # 3. Siapkan Partisi Bootloader & Boot.bin
     echo ">>> [3/4] Menyiapkan partisi Boot.bin & Firmware Snapdragon 410..."
