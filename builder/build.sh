@@ -7,7 +7,6 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET="bookworm"
-FROM_SCRATCH=0
 
 # Parsing argumen
 while [[ $# -gt 0 ]]; do
@@ -16,12 +15,8 @@ while [[ $# -gt 0 ]]; do
             TARGET="$2"
             shift 2
             ;;
-        --from-scratch|--debootstrap)
-            FROM_SCRATCH=1
-            shift
-            ;;
         --help|-h)
-            echo "Usage: sudo $0 [--target <target>] [--from-scratch]"
+            echo "Usage: sudo $0 [--target <target>]"
             echo ""
             echo "Target yang tersedia:"
             echo "  - bookworm                (Debian 12 Bookworm Standar - 4G Modem Aktif)"
@@ -29,9 +24,6 @@ while [[ $# -gt 0 ]]; do
             echo "  - trixie                  (Debian 13 Trixie Standar - 4G Modem Aktif)"
             echo "  - trixie-modem-disabled   (Debian 13 Trixie Modem-Disabled - Max RAM)"
             echo "  - all                     (Build seluruh 4 varian sekaligus)"
-            echo ""
-            echo "Opsi tambahan:"
-            echo "  --from-scratch            (Bootstrap dari repositori Debian murni via debootstrap)"
             exit 0
             ;;
         *)
@@ -55,7 +47,7 @@ check_host_dependencies() {
     if ! command -v debootstrap >/dev/null 2>&1; then
         missing_pkgs+=("debootstrap")
     fi
-    if ! command -v qemu-aarch64-static >/dev/null 2>&1; then
+    if ! command -v qemu-aarch64-static >/dev/null 2>&1 && ! [ -f /usr/libexec/qemu-binfmt/aarch64-binfmt-P ]; then
         missing_pkgs+=("qemu-user-static")
     fi
     if ! command -v zip >/dev/null 2>&1; then
@@ -122,7 +114,6 @@ build_variant() {
     echo "Varian Target : ${VARIANT}"
     echo "Base Distro   : ${BASE_DISTRO^^}"
     echo "Modem Status  : $([ "$IS_MODEM_DISABLED" -eq 1 ] && echo "DISABLED" || echo "ENABLED")"
-    echo "Mode Build    : $([ "$FROM_SCRATCH" -eq 1 ] && echo "FROM SCRATCH (Debootstrap)" || echo "BASE TEMPLATE (Cepat & Teruji)")"
     echo "Direktori     : ${SCRIPT_DIR}"
     echo "=========================================================="
     echo ""
@@ -130,12 +121,11 @@ build_variant() {
     local BUILD_DIR="${SCRIPT_DIR}/build_${VARIANT}"
     local OUTPUT_DIR="${SCRIPT_DIR}/output"
 
-    # Bersihkan mount sisa jika ada
+    # Bersihkan sisa mountpoint jika ada
     umount -l "${BUILD_DIR}/rootfs/dev/pts" 2>/dev/null || true
     umount -l "${BUILD_DIR}/rootfs/dev" 2>/dev/null || true
     umount -l "${BUILD_DIR}/rootfs/proc" 2>/dev/null || true
     umount -l "${BUILD_DIR}/rootfs/sys" 2>/dev/null || true
-    umount -l "${BUILD_DIR}/mnt_tmp" 2>/dev/null || true
     umount -l "${BUILD_DIR}/mnt_img" 2>/dev/null || true
 
     rm -rf "${BUILD_DIR}"
@@ -146,14 +136,13 @@ build_variant() {
         umount -l "${BUILD_DIR}/rootfs/dev" 2>/dev/null || true
         umount -l "${BUILD_DIR}/rootfs/proc" 2>/dev/null || true
         umount -l "${BUILD_DIR}/rootfs/sys" 2>/dev/null || true
-        umount -l "${BUILD_DIR}/mnt_tmp" 2>/dev/null || true
         umount -l "${BUILD_DIR}/mnt_img" 2>/dev/null || true
     }
     trap cleanup EXIT
 
-    # 1. Siapkan Base RootFS
-    echo ">>> [1/4] Menyiapkan Base RootFS (${BASE_DISTRO})..."
-    bash "${SCRIPT_DIR}/scripts/01_bootstrap_rootfs.sh" "${VARIANT}" "${BUILD_DIR}" "${SCRIPT_DIR}" "${FROM_SCRATCH}"
+    # 1. Bootstrap Base RootFS Bersih dari Awal (Pure Debian Debootstrap)
+    echo ">>> [1/4] Membangun Base RootFS bersih dari awal (${BASE_DISTRO})..."
+    bash "${SCRIPT_DIR}/scripts/01_bootstrap_rootfs.sh" "${VARIANT}" "${BUILD_DIR}/rootfs" "${SCRIPT_DIR}"
 
     # 2. Terapkan Overlay, Services, & User Config
     echo ">>> [2/4] Menerapkan OpenStick Overlay, Services, & User Config..."
