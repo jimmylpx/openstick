@@ -16,7 +16,7 @@ MNT_DIR="${BUILD_DIR}/mnt_img"
 
 echo "--> [4/4] Membuat rootfs.bin image (698MB ext4)..."
 rm -f "${ROOTFS_IMG}"
-dd if=/dev/zero of="${ROOTFS_IMG}" bs=1M count=698 status=none
+dd if=/dev/zero of="${ROOTFS_IMG}" bs=4096 count=178800 status=none
 mkfs.ext4 -F -L "rootfs" "${ROOTFS_IMG}"
 
 mkdir -p "${MNT_DIR}"

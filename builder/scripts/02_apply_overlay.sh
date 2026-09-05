@@ -92,6 +92,7 @@ systemctl enable zramswap.service 2>/dev/null || true
 systemctl enable msm-firmware-loader.service 2>/dev/null || true
 systemctl enable regenerate-ssh-host-keys.service 2>/dev/null || true
 systemctl enable systemd-timesyncd.service 2>/dev/null || true
+systemctl enable dnscrypt-proxy.service 2>/dev/null || true
 
 # 4. Konfigurasi Khusus Modem-Disabled (Masking services agar tidak crash-loop)
 if [ "${IS_MODEM_DISABLED}" -eq 1 ]; then
@@ -104,6 +105,7 @@ fi
 chmod u+s /bin/ping 2>/dev/null || chmod u+s /usr/bin/ping 2>/dev/null || true
 
 # 6. Izin eksekusi script & biner OpenStick
+chmod +x /opt/dnscrypt-proxy/dnscrypt-proxy 2>/dev/null || true
 chmod +x /usr/bin/fastfetch 2>/dev/null || true
 chmod +x /usr/bin/gt 2>/dev/null || true
 chmod +x /usr/bin/adbd 2>/dev/null || true
@@ -115,6 +117,9 @@ chmod +x /usr/local/bin/sbrmenu 2>/dev/null || true
 chmod +x /usr/local/bin/usb-mode-init 2>/dev/null || true
 chmod +x /usr/local/bin/openstick-wifi-watchdog 2>/dev/null || true
 chmod +x /usr/sbin/usb-gadget-rndis 2>/dev/null || true
+
+# 7. Update library cache untuk libusbgx dan libcrypto.so.1.1
+ldconfig 2>/dev/null || true
 
 # 7. Kosongkan machine-id agar firstboot trigger berjalan normal
 echo -n "" > /etc/machine-id

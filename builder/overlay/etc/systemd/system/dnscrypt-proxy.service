@@ -1,0 +1,16 @@
+[Unit]
+Description=DNSCrypt-Proxy - Encrypted DNS over HTTPS client
+Documentation=https://github.com/DNSCrypt/dnscrypt-proxy
+After=network.target network-online.target
+Wants=network-online.target
+Before=dnsmasq.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/dnscrypt-proxy
+ExecStart=/opt/dnscrypt-proxy/dnscrypt-proxy -config /opt/dnscrypt-proxy/dnscrypt-proxy.toml
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

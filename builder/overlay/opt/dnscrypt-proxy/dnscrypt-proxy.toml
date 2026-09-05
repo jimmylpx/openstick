@@ -1,0 +1,24 @@
+server_names = ['cloudflare']
+listen_addresses = ['127.0.0.1:5353', '[::1]:5353']
+max_clients = 250
+doh_servers = true
+dnscrypt_servers = true
+require_dnssec = false
+require_nolog = true
+require_nofilter = true
+ipv4_servers = true
+ipv6_servers = false
+timeout = 3000
+keepalive = 30
+bootstrap_resolvers = ['1.1.1.1:53', '8.8.8.8:53']
+fallback_resolvers = ['1.1.1.1:53', '8.8.8.8:53']
+cache = true
+cache_size = 4096
+cache_min_ttl = 600
+cache_max_ttl = 86400
+log_level = 2
+log_file = '/var/log/dnscrypt-proxy.log'
+
+[static]
+  [static.'cloudflare']
+    stamp = 'sdns://AgcAAAAAAAAABzEuMS4xLjEAEmRucy5jbG91ZGZsYXJlLmNvbQovZG5zLXF1ZXJ5'
