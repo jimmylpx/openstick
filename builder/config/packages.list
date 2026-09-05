@@ -1,8 +1,10 @@
-# Daftar Paket Debian Inti untuk OpenStick MSM8916
+# Daftar Paket Debian Lengkap untuk OpenStick MSM8916
 systemd
 systemd-sysv
+systemd-timesyncd
 network-manager
 modemmanager
+mobile-broadband-provider-info
 dnsmasq
 whiptail
 sudo
@@ -17,7 +19,9 @@ locales
 ca-certificates
 fastfetch
 iptables
+nftables
 iproute2
+iputils-ping
 net-tools
 wireless-tools
 wpasupplicant
@@ -25,7 +29,22 @@ rfkill
 socat
 less
 nano
+vim-tiny
 htop
 parted
+fdisk
 e2fsprogs
 dosfstools
+kmod
+zram-tools
+wireguard-tools
+bridge-utils
+bash-completion
+cron
+logrotate
+qrtr-tools
+rmtfs
+netcat-traditional
+bc
+cpio
+ifupdown2

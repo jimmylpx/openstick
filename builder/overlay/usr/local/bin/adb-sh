@@ -1,0 +1,8 @@
+#!/bin/bash
+if [ "$1" = "-c" ]; then
+    shift
+    exec /bin/bash -c "$@"
+else
+    cd /home/user 2>/dev/null || true
+    exec su - user
+fi

@@ -51,9 +51,11 @@ if [ -f "${SCRIPT_ROOT}/config/packages.list" ]; then
 export DEBIAN_FRONTEND=noninteractive
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 apt-get update -qq
-for p in "$@"; do
-    apt-get install -y --no-install-recommends "$p" 2>/dev/null || true
-done
+apt-get install -y --no-install-recommends "$@" || true
+# Install fastfetch from backports if needed
+if ! command -v fastfetch >/dev/null 2>&1; then
+    apt-get install -y -t "${1:-bookworm}-backports" --no-install-recommends fastfetch 2>/dev/null || apt-get install -y --no-install-recommends fastfetch 2>/dev/null || true
+fi
 apt-get autoremove -y --purge
 apt-get clean
 rm -rf /var/lib/apt/lists/*
@@ -61,7 +63,7 @@ exit 0
 CHROOT_INSTALL
 
     chmod +x "${TARGET_ROOTFS}/install_pkgs.sh"
-    chroot "${TARGET_ROOTFS}" /install_pkgs.sh ${PKGS}
+    chroot "${TARGET_ROOTFS}" /install_pkgs.sh ${BASE_DISTRO} ${PKGS}
     rm -f "${TARGET_ROOTFS}/install_pkgs.sh"
 fi
 

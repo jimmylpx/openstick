@@ -88,6 +88,10 @@ systemctl enable NetworkManager.service 2>/dev/null || true
 systemctl enable ssh.service 2>/dev/null || true
 systemctl enable resize-rootfs.service 2>/dev/null || true
 systemctl enable openstick-wifi-watchdog.service 2>/dev/null || true
+systemctl enable zramswap.service 2>/dev/null || true
+systemctl enable msm-firmware-loader.service 2>/dev/null || true
+systemctl enable regenerate-ssh-host-keys.service 2>/dev/null || true
+systemctl enable systemd-timesyncd.service 2>/dev/null || true
 
 # 4. Konfigurasi Khusus Modem-Disabled (Masking services agar tidak crash-loop)
 if [ "${IS_MODEM_DISABLED}" -eq 1 ]; then
@@ -99,7 +103,12 @@ fi
 # 5. SUID Ping
 chmod u+s /bin/ping 2>/dev/null || chmod u+s /usr/bin/ping 2>/dev/null || true
 
-# 6. Izin eksekusi script OpenStick
+# 6. Izin eksekusi script & biner OpenStick
+chmod +x /usr/bin/gt 2>/dev/null || true
+chmod +x /usr/bin/adbd 2>/dev/null || true
+chmod +x /usr/sbin/adbd 2>/dev/null || true
+chmod +x /usr/sbin/msm-firmware-loader.sh 2>/dev/null || true
+chmod +x /usr/local/bin/adb-sh 2>/dev/null || true
 chmod +x /usr/local/bin/py_adbd.py 2>/dev/null || true
 chmod +x /usr/local/bin/sbrmenu 2>/dev/null || true
 chmod +x /usr/local/bin/usb-mode-init 2>/dev/null || true
