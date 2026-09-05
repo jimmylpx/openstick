@@ -28,7 +28,7 @@ e2fsck -fy "${ROOTFS_IMG}"
 
 echo "--> [4/4] Mengemas file ${DISTRO}.zip..."
 mkdir -p "${OUTPUT_DIR}"
-ZIP_OUT="${OUTPUT_DIR}/${DISTRO}.zip"
+ZIP_OUT="$(cd "${OUTPUT_DIR}" && pwd)/${DISTRO}.zip"
 rm -f "${ZIP_OUT}"
 
 (cd "${BUILD_DIR}/partitions" && zip -r "${ZIP_OUT}" ./*)
