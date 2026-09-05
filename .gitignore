@@ -1,0 +1,18 @@
+# Build directories and outputs
+builder/build_*/
+builder/output/
+builder/.cache/
+build_*/
+output/
+
+# OS and temporary archives
+*.zip
+*.zip.bak
+*.bin
+*.img
+work/
+trixie_build/
+__pycache__/
+*.pyc
+*.pyo
+scratch/

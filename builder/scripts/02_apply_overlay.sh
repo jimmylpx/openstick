@@ -56,7 +56,9 @@ mount --bind /dev "${TARGET_ROOTFS}/dev"
 mount --bind /dev/pts "${TARGET_ROOTFS}/dev/pts"
 mount -t proc proc "${TARGET_ROOTFS}/proc"
 mount -t sysfs sys "${TARGET_ROOTFS}/sys"
+rm -f "${TARGET_ROOTFS}/etc/resolv.conf"
 echo "nameserver 8.8.8.8" > "${TARGET_ROOTFS}/etc/resolv.conf"
+cp -f /usr/bin/qemu-aarch64-static "${TARGET_ROOTFS}/usr/bin/" 2>/dev/null || true
 
 cat << CHROOT_TWEAKS > "${TARGET_ROOTFS}/tmp/tweaks.sh"
 #!/bin/bash
@@ -69,10 +71,14 @@ echo "127.0.0.1 localhost openstick" > /etc/hosts
 
 # 2. Buat Akun User default (user:1) & Root (root:1)
 echo "root:1" | chpasswd
+for grp in sudo dialout plugdev netdev audio video users; do
+    groupadd -f "$grp" 2>/dev/null || true
+done
 if ! id -u user >/dev/null 2>&1; then
-    useradd -m -s /bin/bash -G sudo,dialout,plugdev,netdev,audio,video,users user
-    echo "user:1" | chpasswd
+    useradd -m -s /bin/bash user
 fi
+usermod -aG sudo,dialout,plugdev,netdev,audio,video,users user 2>/dev/null || true
+echo "user:1" | chpasswd
 
 # 3. Aktifkan Services Esensial
 systemctl enable adbd.service 2>/dev/null || true
@@ -107,7 +113,7 @@ CHROOT_TWEAKS
 
 chmod +x "${TARGET_ROOTFS}/tmp/tweaks.sh"
 chroot "${TARGET_ROOTFS}" /tmp/tweaks.sh
-rm -f "${TARGET_ROOTFS}/tmp/tweaks.sh"
+rm -f "${TARGET_ROOTFS}/tmp/tweaks.sh" "${TARGET_ROOTFS}/usr/bin/qemu-aarch64-static"
 
 umount -l "${TARGET_ROOTFS}/dev/pts" 2>/dev/null || true
 umount -l "${TARGET_ROOTFS}/dev" 2>/dev/null || true
