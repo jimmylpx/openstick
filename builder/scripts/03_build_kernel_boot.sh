@@ -1,49 +1,39 @@
 #!/bin/bash
-# 03_build_kernel_boot.sh - Prepare boot.bin, partition tables, and firmware blobs strictly from firmware/
+# 03_build_kernel_boot.sh - Prepare bootloader and kernel boot.bin
 set -e
 
 BUILD_DIR="$1"
-IS_MODEM_DISABLED="${2:-0}"
-SCRIPT_ROOT="${3:-$(dirname "$(dirname "$0")")}"
-VARIANT="${4:-bookworm}"
+IS_MODEM_DISABLED="$2"
+SCRIPT_ROOT="$3"
+VARIANT="$4"
 
-if [ -z "$BUILD_DIR" ]; then
-    echo "Usage: $0 <build_dir> [is_modem_disabled] [script_root] [variant]"
+if [ -z "$BUILD_DIR" ] || [ -z "$SCRIPT_ROOT" ]; then
+    echo "Usage: $0 BUILD_DIR IS_MODEM_DISABLED SCRIPT_ROOT VARIANT"
     exit 1
 fi
 
-FW_DIR="${SCRIPT_ROOT}/firmware"
-mkdir -p "${BUILD_DIR}/partitions" "${FW_DIR}"
+PARTITIONS_DIR="${BUILD_DIR}/partitions"
+FIRMWARE_DIR="${SCRIPT_ROOT}/firmware"
 
-echo "--> [3/4] Menyiapkan partisi firmware & bootloader dasar..."
+mkdir -p "${PARTITIONS_DIR}"
 
-PARTITIONS=(aboot.mbn boot.bin gpt_both0.bin hyp.mbn rpm.mbn sbl1.mbn tz.mbn)
-
-# Salin partisi bootloader standar dari folder firmware lokal
-for part in "${PARTITIONS[@]}"; do
-    # Khusus boot.bin untuk varian modem-disabled
-    if [ "$part" = "boot.bin" ] && [ "$IS_MODEM_DISABLED" -eq 1 ]; then
-        if [ -f "${FW_DIR}/boot_modem_disabled.bin" ]; then
-            echo "    [Modem-Disabled] Memasang boot.bin dari: firmware/boot_modem_disabled.bin"
-            cp -a "${FW_DIR}/boot_modem_disabled.bin" "${BUILD_DIR}/partitions/boot.bin"
-            continue
-        fi
-    fi
-
-    # Khusus boot.bin untuk varian standar
-    if [ "$part" = "boot.bin" ]; then
-        if [ -f "${FW_DIR}/boot_standard.bin" ]; then
-            echo "    [Standar] Memasang boot.bin dari: firmware/boot_standard.bin"
-            cp -a "${FW_DIR}/boot_standard.bin" "${BUILD_DIR}/partitions/boot.bin"
-            continue
-        fi
-    fi
-
-    if [ -f "${FW_DIR}/${part}" ]; then
-        cp -a "${FW_DIR}/${part}" "${BUILD_DIR}/partitions/${part}"
+echo "--> [3/4] Menyalin partisi bootloader Qualcomm Snapdragon 410..."
+for p in aboot.mbn gpt_both0.bin hyp.mbn rpm.mbn sbl1.mbn tz.mbn; do
+    if [ -f "${FIRMWARE_DIR}/${p}" ]; then
+        cp -v "${FIRMWARE_DIR}/${p}" "${PARTITIONS_DIR}/${p}"
     else
-        echo "[!] Peringatan: Partisi ${part} tidak ditemukan di ${FW_DIR}!"
+        echo "[!] Error: File partisi ${p} tidak ditemukan di ${FIRMWARE_DIR}!"
+        exit 1
     fi
 done
 
-echo "--> [3/4] Partisi firmware dasar siap di: ${BUILD_DIR}/partitions"
+echo "--> [3/4] Menyiapkan partisi kernel boot.bin..."
+if [ "$IS_MODEM_DISABLED" -eq 1 ]; then
+    echo "    Menggunakan boot_modem_disabled.bin (Device Tree High-RAM ~512MB)..."
+    cp -v "${FIRMWARE_DIR}/boot_modem_disabled.bin" "${PARTITIONS_DIR}/boot.bin"
+else
+    echo "    Menggunakan boot.bin (Kernel Standar 4G Modem Aktif)..."
+    cp -v "${FIRMWARE_DIR}/boot.bin" "${PARTITIONS_DIR}/boot.bin"
+fi
+
+echo "--> [3/4] Seluruh partisi bootloader & kernel berhasil disiapkan di ${PARTITIONS_DIR}."

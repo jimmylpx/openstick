@@ -6,7 +6,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TARGET="bookworm"
+TARGET="bookworm-modem-disabled"
 
 # Parsing argumen
 while [[ $# -gt 0 ]]; do
@@ -44,20 +44,17 @@ check_host_dependencies() {
     echo "--> [Host Check] Memeriksa dependensi sistem host..."
     local missing_pkgs=()
 
-    if ! command -v debootstrap >/dev/null 2>&1; then
-        missing_pkgs+=("debootstrap")
-    fi
-    if ! command -v qemu-aarch64-static >/dev/null 2>&1 && ! [ -f /usr/libexec/qemu-binfmt/aarch64-binfmt-P ]; then
-        missing_pkgs+=("qemu-user-static")
-    fi
     if ! command -v zip >/dev/null 2>&1; then
         missing_pkgs+=("zip")
     fi
-    if ! command -v mkfs.ext4 >/dev/null 2>&1 && ! [ -x /usr/sbin/mkfs.ext4 ] && ! [ -x /sbin/mkfs.ext4 ]; then
-        missing_pkgs+=("e2fsprogs")
+    if ! command -v unzip >/dev/null 2>&1; then
+        missing_pkgs+=("unzip")
     fi
     if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
         missing_pkgs+=("curl")
+    fi
+    if ! command -v tune2fs >/dev/null 2>&1 && ! [ -x /sbin/tune2fs ]; then
+        missing_pkgs+=("e2fsprogs")
     fi
 
     if [ ${#missing_pkgs[@]} -gt 0 ]; then
@@ -66,7 +63,7 @@ check_host_dependencies() {
             echo "--> Menginstal dependensi otomatis via apt-get..."
             export DEBIAN_FRONTEND=noninteractive
             apt-get update -qq
-            apt-get install -y --no-install-recommends "${missing_pkgs[@]}" binfmt-support
+            apt-get install -y --no-install-recommends "${missing_pkgs[@]}"
             echo "--> Dependensi host berhasil dipasang."
         else
             echo "[!] Peringatan: apt-get tidak ditemukan. Harap pasang manual: ${missing_pkgs[*]}"
@@ -122,37 +119,29 @@ build_variant() {
     local OUTPUT_DIR="${SCRIPT_DIR}/output"
 
     # Bersihkan sisa mountpoint jika ada
-    umount -l "${BUILD_DIR}/rootfs/dev/pts" 2>/dev/null || true
-    umount -l "${BUILD_DIR}/rootfs/dev" 2>/dev/null || true
-    umount -l "${BUILD_DIR}/rootfs/proc" 2>/dev/null || true
-    umount -l "${BUILD_DIR}/rootfs/sys" 2>/dev/null || true
-    umount -l "${BUILD_DIR}/mnt_img" 2>/dev/null || true
+    umount -l "${BUILD_DIR}/mnt_rootfs" 2>/dev/null || true
 
     rm -rf "${BUILD_DIR}"
     mkdir -p "${BUILD_DIR}" "${OUTPUT_DIR}"
 
     cleanup() {
-        umount -l "${BUILD_DIR}/rootfs/dev/pts" 2>/dev/null || true
-        umount -l "${BUILD_DIR}/rootfs/dev" 2>/dev/null || true
-        umount -l "${BUILD_DIR}/rootfs/proc" 2>/dev/null || true
-        umount -l "${BUILD_DIR}/rootfs/sys" 2>/dev/null || true
-        umount -l "${BUILD_DIR}/mnt_img" 2>/dev/null || true
+        umount -l "${BUILD_DIR}/mnt_rootfs" 2>/dev/null || true
     }
     trap cleanup EXIT
 
-    # 1. Bootstrap Base RootFS Bersih dari Awal (Pure Debian Debootstrap)
-    echo ">>> [1/4] Membangun Base RootFS bersih dari awal (${BASE_DISTRO})..."
-    bash "${SCRIPT_DIR}/scripts/01_bootstrap_rootfs.sh" "${VARIANT}" "${BUILD_DIR}/rootfs" "${SCRIPT_DIR}"
+    # 1. Siapkan Base RootFS (Verified Image)
+    echo ">>> [1/4] Menyiapkan Base RootFS (${BASE_DISTRO})..."
+    bash "${SCRIPT_DIR}/scripts/01_prepare_base.sh" "${VARIANT}" "${BUILD_DIR}" "${SCRIPT_DIR}"
 
-    # 2. Terapkan Overlay, Services, & User Config
+    # 2. Terapkan Overlay, Services, & User Config secara in-place
     echo ">>> [2/4] Menerapkan OpenStick Overlay, Services, & User Config..."
-    bash "${SCRIPT_DIR}/scripts/02_apply_overlay.sh" "${BUILD_DIR}/rootfs" "${SCRIPT_DIR}/overlay" "${BASE_DISTRO}" "${IS_MODEM_DISABLED}"
+    bash "${SCRIPT_DIR}/scripts/02_apply_overlay.sh" "${BUILD_DIR}/mnt_rootfs" "${SCRIPT_DIR}/overlay" "${BASE_DISTRO}" "${IS_MODEM_DISABLED}" "${BUILD_DIR}" "${VARIANT}"
 
-    # 3. Siapkan Partisi Firmware & Boot.bin
-    echo ">>> [3/4] Menyiapkan partisi Boot.bin & Firmware dasar..."
+    # 3. Siapkan Partisi Bootloader & Boot.bin
+    echo ">>> [3/4] Menyiapkan partisi Boot.bin & Firmware Snapdragon 410..."
     bash "${SCRIPT_DIR}/scripts/03_build_kernel_boot.sh" "${BUILD_DIR}" "${IS_MODEM_DISABLED}" "${SCRIPT_DIR}" "${VARIANT}"
 
-    # 4. Buat rootfs.bin dan kemas zip siap flash
+    # 4. Verifikasi dan kemas zip rilis siap flash
     echo ">>> [4/4] Mengemas paket rilis siap flash (${VARIANT}.zip)..."
     bash "${SCRIPT_DIR}/scripts/04_pack_release.sh" "${VARIANT}" "${BUILD_DIR}" "${OUTPUT_DIR}"
 

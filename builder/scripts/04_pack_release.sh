@@ -1,36 +1,34 @@
 #!/bin/bash
-# 04_pack_release.sh - Build rootfs.bin image and package flashable release zip
+# 04_pack_release.sh - Verify partitions and package flashable release zip
 set -e
 
-DISTRO="$1"
+VARIANT="$1"
 BUILD_DIR="$2"
 OUTPUT_DIR="$3"
 
-if [ -z "$DISTRO" ] || [ -z "$BUILD_DIR" ] || [ -z "$OUTPUT_DIR" ]; then
-    echo "Usage: $0 <distro> <build_dir> <output_dir>"
+if [ -z "$VARIANT" ] || [ -z "$BUILD_DIR" ] || [ -z "$OUTPUT_DIR" ]; then
+    echo "Usage: $0 VARIANT BUILD_DIR OUTPUT_DIR"
     exit 1
 fi
 
-ROOTFS_IMG="${BUILD_DIR}/partitions/rootfs.bin"
-MNT_DIR="${BUILD_DIR}/mnt_img"
-
-echo "--> [4/4] Membuat rootfs.bin image (698MB ext4)..."
-rm -f "${ROOTFS_IMG}"
-dd if=/dev/zero of="${ROOTFS_IMG}" bs=4096 count=178800 status=none
-mkfs.ext4 -F -L "rootfs" "${ROOTFS_IMG}"
-
-mkdir -p "${MNT_DIR}"
-mount -o loop "${ROOTFS_IMG}" "${MNT_DIR}"
-cp -a "${BUILD_DIR}/rootfs/." "${MNT_DIR}/"
-sync
-umount "${MNT_DIR}"
-e2fsck -fy "${ROOTFS_IMG}"
-
-echo "--> [4/4] Mengemas file ${DISTRO}.zip..."
+PARTITIONS_DIR="${BUILD_DIR}/partitions"
 mkdir -p "${OUTPUT_DIR}"
-ZIP_OUT="$(cd "${OUTPUT_DIR}" && pwd)/${DISTRO}.zip"
+ZIP_OUT="${OUTPUT_DIR}/${VARIANT}.zip"
 rm -f "${ZIP_OUT}"
 
-(cd "${BUILD_DIR}/partitions" && zip -r "${ZIP_OUT}" ./*)
+echo "--> [4/4] Memeriksa kelengkapan 8 file partisi wajib OpenStick..."
+REQUIRED_PARTS=(aboot.mbn boot.bin gpt_both0.bin hyp.mbn rootfs.bin rpm.mbn sbl1.mbn tz.mbn)
+for part in "${REQUIRED_PARTS[@]}"; do
+    if [ ! -f "${PARTITIONS_DIR}/${part}" ]; then
+        echo "[!] Error: Partisi wajib ${part} tidak ditemukan di ${PARTITIONS_DIR}!"
+        exit 1
+    fi
+    echo "    [OK] ${part} ($(stat -c%s "${PARTITIONS_DIR}/${part}") bytes)"
+done
 
-echo "--> [4/4] Selesai: ${ZIP_OUT}"
+echo "--> [4/4] Mengompres seluruh partisi ke dalam rilis siap flash: ${ZIP_OUT}..."
+(cd "${PARTITIONS_DIR}" && zip -r -9 "${ZIP_OUT}" ./*)
+
+echo "--> [4/4] Paket rilis berhasil dibuat:"
+ls -lh "${ZIP_OUT}"
+md5sum "${ZIP_OUT}"
