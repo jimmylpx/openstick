@@ -166,13 +166,13 @@ Sistem yang dapat digunakan antara lain:
 - Debian
 - Ubuntu
 - Raspberry Pi OS
-- WSL2
 - Distribusi Linux lain yang memiliki tool yang dibutuhkan
+- Windows 10-11
 
 Pastikan perangkat tersebut memiliki:
 
 - USB port
-- akses `sudo`
+- akses `sudo` untuk Linux
 - koneksi internet
 - kabel USB yang mendukung data
 
@@ -209,12 +209,8 @@ yay -S edl-git
 
 Di Windows, Anda dapat menginstal seluruh tool pendukung (**ADB, Fastboot, Python, dan Qualcomm EDL**) secara otomatis menggunakan satu skrip PowerShell:
 
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; iex (irm https://raw.githubusercontent.com/jimmylpx/openstick/main/install_adb_fastboot_edl.ps1)
-```
-
 Panduan lengkap instalasi dan konfigurasi driver WinUSB Zadig:  
-**[ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md](ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md)**
+**[ADB FASTBOOT EDL INSTALL WINDOWS](ADB_FASTBOOT_EDL_INSTALL_WINDOWS.md)**
 
 ---
 
@@ -327,17 +323,20 @@ chmod +x installer.sh
 ```
 
 ### Windows
-1. Unduh berkas [base-generic.zip](https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip).
-2. Klik kanan berkas zip $\rightarrow$ **Extract All...** ke sebuah folder (misalnya `base-generic`).
-3. Buka folder hasil ekstraksi tersebut di File Explorer.
-
----
+1. Masuk ke folder yang akan kamu jadikan lokasi installasi, misalnya D:\OpenStick.
+2. Klik kanan pada area kosong di dalam folder dan pilih `Open in Terminal/CMD` dan jalanakn perintah berikut:
+```cmd
+curl -LO https://github.com/jimmylpx/openstick/releases/download/v1/base-generic.zip
+mkdir base-generic
+tar -xf base-generic.zip -C base-generic
+cd base-generic
+```
 
 ## 3. Jalankan Installer
 
 Pilih instruksi yang sesuai dengan sistem operasi yang Anda gunakan:
 
-### 🐧 Menggunakan Linux
+### Menggunakan Linux
 
 Jalankan skrip installer:
 
@@ -353,12 +352,12 @@ sudo ./installer.sh
 
 Installer akan memandu Anda memilih varian Debian yang ingin dipasang (Bookworm / Bookworm Modem-Disabled / Trixie / Trixie Modem-Disabled).
 
-### 🪟 Menggunakan Windows
+### Menggunakan Windows
 
-Di dalam folder hasil ekstraksi `base-generic`:
+Pastikan kamu masih di dalam cmd yang mengarah ke folder hasil ekstraksi `base-generic` tadi:
 
 1. Pastikan perangkat OpenStick sudah terhubung dalam mode EDL 9008.
-2. Klik dua kali pada berkas **`installer.bat`** (atau jalankan `python win_installer.py` melalui Terminal / CMD).
+2. Jalankan `installer.bat` melalui Terminal / CMD).
 3. Jendela installer interaktif akan terbuka secara otomatis dan menampilkan menu pilihan varian sistem operasi Debian.
 4. Masukkan nomor pilihan varian Anda (1, 2, 3, atau 4) lalu tekan **Enter**.
 5. Installer akan mengunduh firmware Debian secara otomatis, membackup partisi asli, mem-flash sistem, dan mereboot perangkat langsung ke Linux.
