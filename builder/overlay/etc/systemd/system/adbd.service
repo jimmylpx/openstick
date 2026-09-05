@@ -1,13 +1,18 @@
 [Unit]
-Description=Isolated USB Zero-Auth ADB Daemon
+Description=Android Debug Bridge Daemon (ADBD)
 After=network.target usb-gadget-rndis.service
 Wants=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /usr/local/bin/py_adbd.py 192.168.100.1 5555
+User=user
+Group=user
+WorkingDirectory=/home/user
+ExecStart=/usr/local/bin/py_adbd.py
 Restart=always
 RestartSec=2
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

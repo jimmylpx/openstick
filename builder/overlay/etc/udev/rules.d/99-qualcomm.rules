@@ -1,6 +1,0 @@
-# OpenStick Qualcomm USB Permissions
-SUBSYSTEM=="usb", ATTR{idVendor}=="05c6", MODE="0666", GROUP="plugdev"
-SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTRS{idVendor}=="05c6", MODE="0666", GROUP="plugdev"
-SUBSYSTEM=="usb", ATTRS{idVendor}=="18d1", MODE="0666", GROUP="plugdev"
-SUBSYSTEM=="usb", ATTRS{idVendor}=="1d6b", ATTRS{idProduct}=="0104", MODE="0666", GROUP="plugdev"
-SUBSYSTEM=="tty", ATTRS{idVendor}=="05c6", MODE="0666", GROUP="dialout"
