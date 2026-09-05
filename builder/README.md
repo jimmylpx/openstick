@@ -52,7 +52,12 @@ builder/
 
 ## 🛠️ Persyaratan Sistem Komputer Build
 
-Disarankan menggunakan OS **Debian / Ubuntu / Raspberry Pi OS (Linux x86_64 atau ARM64)**:
+Build system ini berjalan di OS **Debian / Ubuntu / Linux Mint / Raspberry Pi OS (Linux x86_64 atau ARM64)**.
+
+> [!TIP]
+> **Otomatis:** Script `build.sh` sudah dilengkapi fitur **Auto Host Check & Installer**. Jika ada dependensi yang belum terpasang di komputer Anda (seperti `debootstrap`, `qemu-user-static`, `binfmt-support`, dll.), script akan **otomatis memasangnya via `apt-get`** saat pertama kali dijalankan dengan `sudo`.
+
+Jika Anda ingin memasang seluruh dependensi secara manual terlebih dahulu, jalankan:
 
 ```bash
 sudo apt update
@@ -89,6 +94,13 @@ sudo ./build.sh --target trixie-modem-disabled
 ```bash
 sudo ./build.sh --target all
 ```
+
+### ⚡ Mode Build:
+* **Mode Default (Rekomendasi - Cepat & Stabil):** Menggunakan template base rootfs terverifikasi dengan driver kernel MSM8916 & firmware modem/Wi-Fi resmi. Build hanya membutuhkan waktu **~20–30 detik**.
+* **Mode Dari Nol (`--from-scratch`):** Menjalankan bootstrap murni dari repositori Debian via `debootstrap` (memerlukan koneksi internet dan waktu ekstra untuk kompilasi/unpack di QEMU).
+  ```bash
+  sudo ./build.sh --target bookworm --from-scratch
+  ```
 
 ---
 
