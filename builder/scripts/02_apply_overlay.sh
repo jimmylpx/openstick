@@ -109,6 +109,7 @@ chmod +x /usr/sbin/usb-gadget-rndis 2>/dev/null || true
 # 7. Kosongkan machine-id agar firstboot trigger berjalan normal
 echo -n "" > /etc/machine-id
 rm -f /var/lib/dbus/machine-id
+exit 0
 CHROOT_TWEAKS
 
 chmod +x "${TARGET_ROOTFS}/tmp/tweaks.sh"

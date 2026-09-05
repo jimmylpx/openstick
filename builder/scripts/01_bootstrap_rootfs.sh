@@ -46,7 +46,7 @@ if [ -f "${SCRIPT_ROOT}/config/packages.list" ]; then
     echo "--> [1/4] Menginstal paket esensial dari config/packages.list..."
     PKGS=$(grep -v '^#' "${SCRIPT_ROOT}/config/packages.list" | grep -v '^$' | tr '\n' ' ')
     
-    cat << 'CHROOT_INSTALL' > "${TARGET_ROOTFS}/tmp/install_pkgs.sh"
+    cat << 'CHROOT_INSTALL' > "${TARGET_ROOTFS}/install_pkgs.sh"
 #!/bin/bash
 export DEBIAN_FRONTEND=noninteractive
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -56,12 +56,13 @@ for p in "$@"; do
 done
 apt-get autoremove -y --purge
 apt-get clean
-rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+rm -rf /var/lib/apt/lists/*
+exit 0
 CHROOT_INSTALL
 
-    chmod +x "${TARGET_ROOTFS}/tmp/install_pkgs.sh"
-    chroot "${TARGET_ROOTFS}" /tmp/install_pkgs.sh ${PKGS}
-    rm -f "${TARGET_ROOTFS}/tmp/install_pkgs.sh"
+    chmod +x "${TARGET_ROOTFS}/install_pkgs.sh"
+    chroot "${TARGET_ROOTFS}" /install_pkgs.sh ${PKGS}
+    rm -f "${TARGET_ROOTFS}/install_pkgs.sh"
 fi
 
 # Pasang driver kernel MSM8916 dan firmware Qualcomm dari folder firmware/
