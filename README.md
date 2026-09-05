@@ -631,22 +631,60 @@ Untuk pengguna baru, `sbrmenu` adalah cara termudah untuk mulai mengonfigurasi O
 
 ---
 
-# Build Firmware Sendiri
+# 🛠️ Build Firmware Sendiri (OpenStick Firmware Builder)
 
-Kalau Anda ingin membuat firmware sendiri, source code dan build system tersedia di:
+Jika Anda ingin membangun firmware kustom sendiri atau memodifikasi sistem (menambahkan paket, service, konfigurasi jaringan, atau mengubah device tree), seluruh *source code* dan *build system* telah disediakan di folder **[`builder/`](https://github.com/jimmylpx/openstick/tree/main/builder)**.
 
-**[Build Your Own Firmware](https://github.com/jimmylpx/openstick/tree/main/builder)**
+> [!TIP]
+> **Otomatis & Siap Pakai:** File base rootfs (`rootfs.bin` ~732MB) sengaja tidak di-commit ke Git karena batas ukuran file GitHub (maksimal 100MB). Namun, script `build.sh` sudah dilengkapi **Auto-Downloader**. Saat pertama kali dijalankan oleh siapapun yang me-clone repositori ini, script akan otomatis mengunduh base rootfs terverifikasi ke `builder/base/` dan mengompilasi full distro 100% siap flash!
 
-Di sana tersedia:
+### Langkah Mudah Build Sendiri dari GitHub:
 
-- `build.sh`
-- `packages.list`
-- overlay filesystem
-- konfigurasi firmware
-- komponen untuk build Bookworm
-- komponen untuk build Trixie
+1. **Clone repositori:**
+   ```bash
+   git clone https://github.com/jimmylpx/openstick.git
+   cd openstick/builder
+   ```
 
-Ini cocok jika Anda ingin membuat image khusus dengan paket, service, konfigurasi jaringan, atau modifikasi sistem sendiri.
+2. **Jalankan script build sesuai target yang Anda inginkan:**
+
+   - **Debian 12 Bookworm (Standar - 4G Modem Aktif, RAM ~390MB):**
+     ```bash
+     sudo ./build.sh --target bookworm
+     ```
+
+   - **Debian 12 Bookworm (Modem-Disabled - Rekomendasi Server/Homelab, RAM ~466MB):**
+     ```bash
+     sudo ./build.sh --target bookworm-modem-disabled
+     ```
+
+   - **Debian 13 Trixie (Standar):**
+     ```bash
+     sudo ./build.sh --target trixie
+     ```
+
+   - **Debian 13 Trixie (Modem-Disabled):**
+     ```bash
+     sudo ./build.sh --target trixie-modem-disabled
+     ```
+
+   - **Build seluruh 4 varian sekaligus:**
+     ```bash
+     sudo ./build.sh --target all
+     ```
+
+3. **Hasil Output:**
+   File zip hasil build lengkap dengan 8 partisi Qualcomm (`aboot.mbn`, `boot.bin`, `gpt_both0.bin`, `hyp.mbn`, `rootfs.bin`, `rpm.mbn`, `sbl1.mbn`, `tz.mbn`) akan otomatis tersimpan di folder:
+   ```text
+   builder/output/
+   ├── bookworm.zip
+   ├── bookworm-modem-disabled.zip
+   ├── trixie.zip
+   └── trixie-modem-disabled.zip
+   ```
+   File zip tersebut 100% kompatibel dan siap di-flash ke modem menggunakan `installer.sh` (Linux) atau `installer.bat` (Windows).
+
+Panduan lengkap kustomisasi struktur builder dapat dibaca di **[builder/README.md](https://github.com/jimmylpx/openstick/blob/main/builder/README.md)**.
 
 ---
 
