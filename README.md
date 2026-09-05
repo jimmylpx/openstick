@@ -635,7 +635,7 @@ Untuk pengguna baru, `sbrmenu` adalah cara termudah untuk mulai mengonfigurasi O
 
 Kalau Anda ingin membuat firmware sendiri, source code dan build system tersedia di:
 
-**[Build Your Own Firmware](https://github.com/jimmylpx/openstick/tree/main/sourcecode)**
+**[Build Your Own Firmware](https://github.com/jimmylpx/openstick/tree/main/builder)**
 
 Di sana tersedia:
 
