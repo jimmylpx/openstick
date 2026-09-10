@@ -749,6 +749,16 @@ Untuk Wi-Fi, pastikan PC berada pada jaringan yang sama dengan OpenStick.
 
 ---
 
+## 4G tidak aktif (sim-missing)
+
+Dikarenakan saya hanya memiliki 3 device, kemungkinan beberapa device serupa mungkin bisa atau tidak bisa mengaktifkan 4g karena memiliki device tree berbeda dalam firmwarenya.
+
+Untuk menanganinya, kamu bisa open issue dan  informasikan tipe board yang kamu punya serta upload dump dari firmware yang otomatis di-backup saat proses install openstick. Bisa gunakan link Google drive.
+
+Untuk kedepannya mungkin installer akan saya update untuk otomatis mendeteksi perangkat compatible yang belum terverifikasi berhasil, lalu otomatis melihat device tree dari fw asli dan mengcopy file tersebut ke firmware openstick.
+
+---
+
 ## Tidak ada internet setelah Debian boot
 
 Periksa interface:
