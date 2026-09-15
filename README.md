@@ -222,7 +222,11 @@ Proses instalasi terdiri dari tiga bagian utama:
 2. Mengunduh paket flasher (`base-generic.zip`)
 3. Menjalankan installer (tersedia versi Linux dan Windows)
 
-Sebelum mulai, pastikan Anda sudah mengetahui tipe board OpenStick yang digunakan.
+Sebelum mulai, pastikan Anda sudah mengetahui tipe board OpenStick yang digunakan dan memulainya dari Firmware asli. Jika Anda sudah pernah melakukan flash yang menyebabkan perangkat tidak bisa boot ke fastboot atau pun adb, Anda bisa melakukan restore menggunakan EDL.
+
+```cmd
+edl wf firmware.bin
+```
 
 ---
 
